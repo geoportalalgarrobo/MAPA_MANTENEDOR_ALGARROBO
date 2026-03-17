@@ -5,7 +5,7 @@ import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { deserialize } from 'flatgeobuf/lib/mjs/geojson';
 
-const MapComponent = forwardRef(({ onAnalyzePolygon, isAnalyzing, activeLayers, mapStyle, results, onMapReady, availableLayers = [] }, ref) => {
+const MapComponent = forwardRef(({ onAnalyzePolygon, isAnalyzing, activeLayers, mapStyle, results, onMapReady, availableLayers = [], onProximityPoint, activeDrawMode }, ref) => {
     const mapContainer = useRef(null);
     const map = useRef(null);
     const draw = useRef(null);
@@ -162,6 +162,16 @@ const MapComponent = forwardRef(({ onAnalyzePolygon, isAnalyzing, activeLayers, 
             if (availableLayers.length === 0) return;
 
             const layerIds = availableLayers.flatMap(id => [`${id}-fill`]);
+
+            if (activeDrawMode === 'proximity_point') {
+                const { lat, lng } = e.lngLat;
+                onProximityPoint(lat, lng);
+                new maplibregl.Marker({ color: '#f97316' })
+                    .setLngLat([lng, lat])
+                    .addTo(map.current);
+                return;
+            }
+
             const features = map.current.queryRenderedFeatures(e.point, { layers: layerIds });
 
             if (features.length > 0) {
@@ -202,7 +212,11 @@ const MapComponent = forwardRef(({ onAnalyzePolygon, isAnalyzing, activeLayers, 
         map.current.on('mousemove', (e) => {
             if (!mapLoaded) return;
             const features = map.current.queryRenderedFeatures(e.point);
-            map.current.getCanvas().style.cursor = features.length > 0 ? 'pointer' : '';
+            if (activeDrawMode === 'proximity_point') {
+                map.current.getCanvas().style.cursor = 'crosshair';
+            } else {
+                map.current.getCanvas().style.cursor = features.length > 0 ? 'pointer' : '';
+            }
         });
 
         return () => {

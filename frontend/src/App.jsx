@@ -11,6 +11,8 @@ function App() {
   const [activeDrawMode, setActiveDrawMode] = useState(null);
   const historyCounterRef = useRef(1);
   const [error, setError] = useState(null);
+  const [proximityResults, setProximityResults] = useState(null);
+  const [showProximityPanel, setShowProximityPanel] = useState(false);
 
   // Map Drawing State Reference
   const mapRef = useRef(null); // Will hold functions exposed by MapComponent
@@ -59,6 +61,24 @@ function App() {
       ...prev,
       [layerId]: !prev[layerId],
     }));
+  };
+
+  const handleProximityPoint = async (lat, lon) => {
+    setIsAnalyzing(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/proximidad/${lat}/${lon}`);
+      if (!response.ok) throw new Error("Error obteniendo datos de proximidad");
+      const data = await response.json();
+      setProximityResults(data);
+      setShowProximityPanel(true);
+    } catch (err) {
+      console.error(err);
+      setError("No se pudo calcular la proximidad.");
+    } finally {
+      setIsAnalyzing(false);
+      setActiveDrawMode(null);
+    }
   };
 
   const handleAnalyzePolygon = async (featureData) => {
@@ -185,9 +205,12 @@ function App() {
   };
 
   const handleReset = () => {
-    setShowResultsPanel(false); // Hide the panel, but KEEP results
+    setShowResultsPanel(false);
+    setShowProximityPanel(false);
+    setProximityResults(null);
     setError(null);
     setIsAnalyzing(false);
+    setActiveDrawMode(null);
   };
 
   const handleStartDrawing = (mode = 'draw_polygon') => {
@@ -232,6 +255,9 @@ function App() {
           layerOrder={layerOrder}
           onReorderLayers={handleReorderLayers}
           availableLayers={availableLayers}
+          proximityResults={proximityResults}
+          showProximityPanel={showProximityPanel}
+          setShowProximityPanel={setShowProximityPanel}
         />
       </aside>
 
@@ -246,6 +272,8 @@ function App() {
           results={results}
           layerOrder={layerOrder}
           availableLayers={availableLayers}
+          onProximityPoint={handleProximityPoint}
+          activeDrawMode={activeDrawMode}
         />
       </main>
     </div>

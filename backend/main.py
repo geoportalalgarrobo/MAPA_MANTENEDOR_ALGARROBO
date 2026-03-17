@@ -158,6 +158,66 @@ async def get_feature_info(layer: str, lat: float, lon: float):
         raise HTTPException(status_code=404, detail="No feature found at this location")
     return info
 
+@app.get("/api/proximidad/{lat}/{lon}")
+async def get_proximity(lat: float, lon: float):
+    """Calculates distance from a point to the nearest feature in all available layers."""
+    p = Point(lon, lat)
+    p_gdf = gpd.GeoDataFrame(geometry=[p], crs="EPSG:4326").to_crs(epsg=32719)
+    p_utm = p_gdf.geometry.iloc[0]
+    
+    fgb_files = glob.glob(os.path.join(DATA_TILES, "*.fgb"))
+    exclude = ["regiones_simplified", "provincias_simplified", "comunas_simplified"]
+    layers_to_check = [os.path.splitext(os.path.basename(f))[0] for f in fgb_files if os.path.splitext(os.path.basename(f))[0] not in exclude]
+
+    def calculate_proximity():
+        results = []
+        for layer in layers_to_check:
+            try:
+                path = os.path.join(DATA_TILES, f"{layer}.fgb")
+                # Optimization: Read a 10km bbox first to avoid loading everything
+                margin = 0.1 # approx 10km
+                bbox = (lon - margin, lat - margin, lon + margin, lat + margin)
+                gdf = safe_read_fgb(path, bbox=bbox)
+                
+                # If nothing in 10km, try 50km
+                if gdf is None or gdf.empty:
+                    margin = 0.5 
+                    bbox = (lon - margin, lat - margin, lon + margin, lat + margin)
+                    gdf = safe_read_fgb(path, bbox=bbox)
+                
+                # Fallback to full read if still empty (maybe it's very sparse)
+                if gdf is None or gdf.empty:
+                    gdf = safe_read_fgb(path)
+
+                if gdf is not None and not gdf.empty:
+                    gdf_utm = gdf.to_crs(epsg=32719)
+                    distances = gdf_utm.distance(p_utm)
+                    min_dist = distances.min()
+                    nearest_idx = distances.idxmin()
+                    feature = gdf.iloc[nearest_idx]
+                    
+                    # Get a name for the nearest feature
+                    name = "Sin nombre"
+                    for field in ['nombre', 'name', 'Name', 'NOMBRE', 'nombreorig']:
+                        if field in feature:
+                            name = str(feature[field])
+                            break
+
+                    results.append({
+                        "layer": layer,
+                        "distance_m": round(min_dist, 2),
+                        "feature_name": name,
+                        "layer_display": layer.replace('_', ' ').title()
+                    })
+            except Exception as e:
+                logger.error(f"Error in proximity for {layer}: {e}")
+                continue
+        
+        return sorted(results, key=lambda x: x['distance_m'])
+
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(executor, calculate_proximity)
+
 @app.post("/api/reporte-predio")
 async def reporte_predio(payload: GeoJSONPayload):
     """Analyzes a drawn/uploaded polygon against all available FGB layers."""
