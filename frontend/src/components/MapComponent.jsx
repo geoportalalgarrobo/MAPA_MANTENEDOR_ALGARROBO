@@ -123,7 +123,6 @@ const MapComponent = forwardRef(({ onAnalyzePolygon, isAnalyzing, activeLayers, 
             },
             defaultMode: 'simple_select',
             styles: [
-                // PLOT STYLES - Blue theme for active drawing
                 {
                     'id': 'gl-draw-polygon-fill-inactive',
                     'type': 'fill',
@@ -169,173 +168,128 @@ const MapComponent = forwardRef(({ onAnalyzePolygon, isAnalyzing, activeLayers, 
             if (onMapReady) onMapReady();
         });
 
-        // Click handler for dynamic layers
         map.current.on('click', async (e) => {
             if (availableLayers.length === 0) return;
-
-            const layerIds = availableLayers.flatMap(id => [`${id}-fill`]);
 
             if (activeDrawModeRef.current === 'proximity_point') {
                 const { lat, lng } = e.lngLat;
                 onProximityPoint(lat, lng);
-                
                 if (proximityMarker.current) proximityMarker.current.remove();
-                
                 proximityMarker.current = new maplibregl.Marker({ color: '#f97316' })
                     .setLngLat([lng, lat])
                     .addTo(map.current);
                 return;
             }
 
-            const features = map.current.queryRenderedFeatures(e.point, { layers: layerIds });
+            const queryableLayers = [...availableLayers].filter(id => activeLayers[id]).map(id => `${id}-fill`);
+            if (queryableLayers.length === 0) return;
+            const features = map.current.queryRenderedFeatures(e.point, { layers: queryableLayers });
 
             if (features.length > 0) {
                 const feature = features[0];
+                const props = feature.properties;
                 const layerId = feature.layer.id.replace('-fill', '');
-                const { lat, lng } = e.lngLat;
+                
+                let html = `<div class="p-1 font-sans min-w-[200px] text-slate-100 bg-slate-900 border border-slate-700 rounded-lg">
+                    <div class="flex items-center gap-2 mb-2 border-b border-slate-700 pb-2">
+                        <div class="w-2.5 h-2.5 rounded-full" style="background-color: ${getLayerColor(layerId)}"></div>
+                        <span class="font-bold text-[10px] uppercase">${getLayerDisplayName(layerId)}</span>
+                    </div>
+                    <div class="max-h-[200px] overflow-y-auto">
+                    <table class="w-full text-[9px] border-separate border-spacing-y-0.5">`;
+                
+                Object.entries(props).forEach(([k, v]) => {
+                    if (k.startsWith('_') || ['id','FID','objectid','shape_length','shape_area'].some(ex => k.toLowerCase().includes(ex))) return;
+                    html += `<tr><td class="font-bold pr-2 text-slate-500 uppercase">${k}:</td><td class="text-slate-300">${v}</td></tr>`;
+                });
+                html += `</table></div></div>`;
 
-                try {
-                    const response = await fetch(`/api/feature-info/${layerId}/${lat}/${lng}`);
-                    if (response.ok) {
-                        const text = await response.text();
-                        if (!text) return;
-                        const data = JSON.parse(text);
-                        new maplibregl.Popup()
-                            .setLngLat(e.lngLat)
-                            .setHTML(`
-                                <div class="p-2 text-slate-900 font-sans">
-                                    <h4 class="font-bold border-b border-slate-200 mb-2 uppercase text-xs text-blue-600">${layerId.replace(/_/g, ' ')}</h4>
-                                    <div class="max-h-48 overflow-y-auto">
-                                        ${Object.entries(data).map(([k, v]) => `
-                                            <div class="mb-1">
-                                                <span class="text-[10px] font-bold text-slate-500 uppercase">${k}:</span>
-                                                <span class="text-[11px] block">${v}</span>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                            `)
-                            .addTo(map.current);
-                    }
-                } catch (err) {
-                    console.error("Error fetching feature info:", err);
-                }
+                new maplibregl.Popup({ className: 'custom-popup' }).setLngLat(e.lngLat).setHTML(html).addTo(map.current);
             }
         });
 
-        // Change cursor on hover
         map.current.on('mousemove', (e) => {
             if (!mapLoaded) return;
-            const features = map.current.queryRenderedFeatures(e.point);
             if (activeDrawModeRef.current === 'proximity_point') {
                 map.current.getCanvas().style.cursor = 'crosshair';
             } else {
+                const features = map.current.queryRenderedFeatures(e.point);
                 map.current.getCanvas().style.cursor = features.length > 0 ? 'pointer' : '';
             }
         });
 
-        return () => {
-            if (map.current) {
-                map.current.remove();
-                map.current = null;
-            }
-        };
-    }, []); // Only once
+        return () => { if (map.current) { map.current.remove(); map.current = null; } };
+    }, []);
 
-    // 2. DYNAMICALLY ADD SOURCES AND LAYERS (Direct FGB Streaming - Option 2)
+    // 2. DYNAMICALLY LOAD FGB LAYERS
     useEffect(() => {
-        const activeKeys = Object.keys(activeLayers).filter(k => activeLayers[k]);
-        
         if (!map.current || !mapLoaded || availableLayers.length === 0) return;
-
-        console.log("[FGB Debug] Sincronizando capas.", { 
-            disponibles: availableLayers.length, 
-            activas: activeKeys,
-            deserializeOk: typeof deserialize === 'function'
-        });
-
-        if (typeof deserialize !== 'function') {
-            console.error("[FGB Debug] CRITICAL: 'deserialize' no es una función. Error de importación de librería.");
-            return;
-        }
 
         const handleFGBUpdate = async () => {
             for (const layerId of availableLayers) {
-                const isActive = activeLayers[layerId];
-                
-                if (!isActive) {
-                    // console.log(`[FGB Debug] ${layerId} sigue inactiva.`);
-                    continue;
-                }
+                if (!activeLayers[layerId] || map.current.getSource(layerId)) continue;
 
-                if (map.current.getSource(layerId)) continue;
-
-                const fgbUrl = `/api/raw-tiles/${layerId}.lowres.fgb`;
-                console.log(`[FGB Debug] 🚀 INICIANDO CARGA BINARIA: ${layerId}`);
-                
                 try {
-                    map.current.addSource(layerId, {
-                        type: 'geojson',
-                        data: { type: 'FeatureCollection', features: [] }
-                    });
-
+                    map.current.addSource(layerId, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
                     const color = getLayerColor(layerId);
                     map.current.addLayer({
-                        id: `${layerId}-fill`,
-                        type: 'fill',
-                        source: layerId,
+                        id: `${layerId}-fill`, type: 'fill', source: layerId,
                         paint: { 'fill-color': color, 'fill-opacity': 0.4 },
                         layout: { visibility: 'visible' }
                     }, 'terrenos-fill');
-
                     map.current.addLayer({
-                        id: `${layerId}-line`,
-                        type: 'line',
-                        source: layerId,
+                        id: `${layerId}-line`, type: 'line', source: layerId,
                         paint: { 'line-color': color, 'line-width': 1 },
                         layout: { visibility: 'visible' }
                     }, 'terrenos-line');
 
-                    // ⚡️ FETCH BINARIO EXPLÍCITO
-                    const response = await fetch(fgbUrl);
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
+                    const response = await fetch(`/api/raw-tiles/${layerId}.lowres.fgb`);
                     const iter = deserialize(response.body);
                     const features = [];
-                    let count = 0;
                     for await (const feature of iter) {
                         features.push(feature);
-                        count++;
-                        // Actualización por bloques para suavizar el renderizado
-                        if (count % 1000 === 0) {
+                        if (features.length % 1000 === 0) {
                             map.current.getSource(layerId).setData({ type: 'FeatureCollection', features: [...features] });
                         }
                     }
                     map.current.getSource(layerId).setData({ type: 'FeatureCollection', features });
-                    console.log(`[FGB Debug] ✅ CARGA COMPLETA: ${layerId} (${count} elementos)`);
-
-                } catch (err) {
-                    console.error(`[FGB Debug] ❌ ERROR en ${layerId}:`, err);
-                }
+                } catch (err) { console.error(`Error loading FGB ${layerId}:`, err); }
             }
         };
-
         handleFGBUpdate();
-    }, [availableLayers, mapLoaded, activeLayers]); 
-// activeLayers included to trigger lazy load when toggled
+    }, [availableLayers, mapLoaded, activeLayers]);
 
     // 3. SYNC VISIBILITY
     useEffect(() => {
         if (!map.current || !mapLoaded) return;
-        
-        [...availableLayers, 'terrenos'].forEach(layer => {
-            const visibility = activeLayers[layer] ? 'visible' : 'none';
-            if (map.current.getLayer(`${layer}-fill`)) map.current.setLayoutProperty(`${layer}-fill`, 'visibility', visibility);
-            if (map.current.getLayer(`${layer}-line`)) map.current.setLayoutProperty(`${layer}-line`, 'visibility', visibility);
+        [...availableLayers, 'terrenos'].forEach(layerId => {
+            const visibility = activeLayers[layerId] ? 'visible' : 'none';
+            if (map.current.getLayer(`${layerId}-fill`)) map.current.setLayoutProperty(`${layerId}-fill`, 'visibility', visibility);
+            if (map.current.getLayer(`${layerId}-line`)) map.current.setLayoutProperty(`${layerId}-line`, 'visibility', visibility);
         });
     }, [activeLayers, mapLoaded, availableLayers]);
 
-    // 4. SYNC RESULTS DATA
+    // 4. SYNC Z-INDEX
+    useEffect(() => {
+        if (!map.current || !mapLoaded || !results) return;
+        // The layerOrder passed from App is what we use
+        const currentOrder = results.layerOrder || []; 
+        // Wait, layerOrder prop is available directly
+    }, []);
+
+    // Re-doing the Z-index effect properly using the prop 'layerOrder'
+    useEffect(() => {
+        if (!map.current || !mapLoaded || !layerOrder) return;
+        const reversed = [...layerOrder].reverse();
+        reversed.forEach(id => {
+            if (map.current.getLayer(`${id}-fill`)) {
+                map.current.moveLayer(`${id}-fill`, 'terrenos-fill');
+                if (map.current.getLayer(`${id}-line`)) map.current.moveLayer(`${id}-line`, 'terrenos-fill');
+            }
+        });
+    }, [layerOrder, mapLoaded]);
+
+    // 5. SYNC RESULTS DATA
     useEffect(() => {
         if (!map.current || !mapLoaded) return;
         const source = map.current.getSource('terrenos-source');
@@ -355,7 +309,7 @@ const MapComponent = forwardRef(({ onAnalyzePolygon, isAnalyzing, activeLayers, 
         }
     }, [results, mapLoaded]);
 
-    // 5. BASE MAP STYLE
+    // 6. BASE MAP STYLE
     useEffect(() => {
         if (!map.current || !mapLoaded) return;
         if (map.current.getLayer('base-map')) map.current.setLayoutProperty('base-map', 'visibility', mapStyle === 'dark' ? 'visible' : 'none');
@@ -363,98 +317,14 @@ const MapComponent = forwardRef(({ onAnalyzePolygon, isAnalyzing, activeLayers, 
         if (map.current.getLayer('base-map-satellite')) map.current.setLayoutProperty('base-map-satellite', 'visibility', mapStyle === 'satellite' ? 'visible' : 'none');
     }, [mapStyle, mapLoaded]);
 
-    // 4. CLICK TO IDENTIFY (Info Popup)
-    useEffect(() => {
-        if (!map.current || !mapLoaded) return;
-
-        const handleMapClick = (e) => {
-            // Capas a consultar (solo las activas)
-            const queryableLayers = [...availableLayers]
-                .filter(id => activeLayers[id])
-                .map(id => `${id}-fill`);
-
-            if (queryableLayers.length === 0) return;
-
-            const features = map.current.queryRenderedFeatures(e.point, {
-                layers: queryableLayers
-            });
-
-            if (features.length > 0) {
-                const feature = features[0];
-                const props = feature.properties;
-                const layerId = feature.layer.id.replace('-fill', '');
-                
-                // Formatear HTML para el Popup
-                let html = `<div class="p-1 font-sans min-w-[200px]">
-                    <div class="flex items-center gap-2 mb-2 border-b border-slate-700 pb-2">
-                        <div class="w-3 h-3 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)]" style="background-color: ${getLayerColor(layerId)}"></div>
-                        <span class="font-bold text-slate-100 text-[11px] uppercase tracking-wider">${getLayerDisplayName(layerId)}</span>
-                    </div>
-                    <div class="max-h-[250px] overflow-y-auto pr-1 custom-scrollbar">
-                    <table class="w-full text-[10px] text-slate-300 border-separate border-spacing-y-1">`;
-                
-                const skipAttributes = [
-                    'id', 'objectid', 'shape_length', 'shape_area', 'st_area_sh', 'st_length_', 
-                    'objectid_1', 'shape__are', 'shape__len', 'orig_fid', 'cod_comuna', 'cod_prov', 'codregion'
-                ];
-
-                Object.entries(props).forEach(([key, val]) => {
-                    const lowKey = key.toLowerCase();
-                    if (lowKey.startsWith('_') || skipAttributes.includes(lowKey)) return;
-                    
-                    const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                    html += `<tr>
-                        <td class="font-semibold pr-3 text-slate-500 whitespace-nowrap">${label}:</td>
-                        <td class="text-slate-200">
-                            ${val !== null && val !== 'null' && val !== '' ? 
-                                (typeof val === 'string' && val.startsWith('http') ? 
-                                    `<a href="${val}" target="_blank" class="text-blue-400 hover:underline">Ver enlace</a>` : val) 
-                                : '-'}
-                        </td>
-                    </tr>`;
-                });
-                
-                html += `</table></div></div>`;
-
-                new maplibregl.Popup({ closeButton: true, className: 'map-popup' })
-                    .setLngLat(e.lngLat)
-                    .setHTML(html)
-                    .addTo(map.current);
-            }
-        };
-
-        const handleMouseEnter = () => map.current.getCanvas().style.cursor = 'pointer';
-        const handleMouseLeave = () => map.current.getCanvas().style.cursor = '';
-
-        map.current.on('click', handleMapClick);
-        
-        // Agregar hover effect a cada capa activa
-        availableLayers.forEach(layerId => {
-            const lid = `${layerId}-fill`;
-            map.current.on('mouseenter', lid, handleMouseEnter);
-            map.current.on('mouseleave', lid, handleMouseLeave);
-        });
-
-        return () => {
-            if (map.current) {
-                map.current.off('click', handleMapClick);
-                availableLayers.forEach(layerId => {
-                    const lid = `${layerId}-fill`;
-                    map.current.off('mouseenter', lid, handleMouseEnter);
-                    map.current.off('mouseleave', lid, handleMouseLeave);
-                });
-            }
-        };
-    }, [mapLoaded, activeLayers, availableLayers]);
-
     return (
-        <div className="relative w-full h-full bg-[#020617]"> {/* Rec 20: HW Acceleration background */}
+        <div className="relative w-full h-full bg-[#020617]">
             <div ref={mapContainer} className="w-full h-full" />
             {isAnalyzing && (
                 <div className="absolute inset-0 bg-black/50 z-[1000] flex items-center justify-center">
-                    <div className="bg-slate-900 text-white px-6 py-4 rounded-lg shadow-xl flex items-center gap-4 border border-slate-700">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-                        <span className="font-medium text-sm">Procesando información geográfica...</span>
+                    <div className="bg-slate-900 border border-slate-700 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 animate-in fade-in zoom-in duration-300">
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent"></div>
+                        <span className="text-white font-black text-xs uppercase tracking-widest">Sincronizando Cartografía...</span>
                     </div>
                 </div>
             )}

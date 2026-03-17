@@ -33,6 +33,17 @@ app.add_middleware(GZipMiddleware, minimum_size=1000) # Compresión Gzip para JS
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_TILES = os.path.join(BASE_DIR, "..", "data_tiles")
 FRONTEND_DIST = os.path.join(BASE_DIR, "..", "frontend", "dist")
+CONFIG_PATH = os.path.join(BASE_DIR, "layers_config.json")
+
+# Helper to load config
+def load_layers_config():
+    if os.path.exists(CONFIG_PATH):
+        try:
+            with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading config: {e}")
+    return {}
 
 # Thread Pool for CPU intensive GIS tasks - Limited to 2 for Railway stability (OOM prevention)
 executor = ThreadPoolExecutor(max_workers=2)
@@ -70,18 +81,31 @@ async def health():
 
 @app.get("/api/layers")
 async def list_layers():
-    """Manifest of all layers with metadata."""
-    catalog_path = os.path.join(DATA_TILES, 'layers.json')
-    if os.path.exists(catalog_path):
-        try:
-            with open(catalog_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except: pass
+    """Manifest of all layers with metadata and grouping."""
+    config = load_layers_config()
     
-    # Fallback if catalog fails
+    # Get available files
     fgb_files = glob.glob(os.path.join(DATA_TILES, "*.fgb"))
-    layers = [{"id": os.path.splitext(os.path.basename(f))[0]} for f in fgb_files if not f.endswith('.lowres.fgb')]
-    return {"layers": layers}
+    available_ids = [os.path.splitext(os.path.basename(f))[0] for f in fgb_files if not f.endswith('.lowres.fgb')]
+    
+    # If no config, return flat list from files
+    if not config:
+        return {"layers": [{"id": lid} for lid in available_ids]}
+    
+    # Re-verify config layers actually exist in data_tiles
+    verified_groups = []
+    for g in config.get("groups", []):
+        verified_layers = [l for l in g.get("layers", []) if l in available_ids]
+        if verified_layers:
+            verified_groups.append({**g, "layers": verified_layers})
+            
+    return {
+        "groups": verified_groups,
+        "layers": [{"id": lid} for lid in available_ids],
+        "metadata": config.get("layer_metadata", {}),
+        "display_order": config.get("display_order", []),
+        "administrative_config": config.get("administrative_config", {})
+    }
 
 @app.get("/api/layers/{layer}.json")
 async def get_layer_geojson(layer: str, lowres: bool = False):
@@ -226,10 +250,14 @@ async def reporte_predio(payload: GeoJSONPayload):
         if not geom.is_valid: geom = geom.buffer(0)
         wkt_geom = geom.wkt
         
+        config = load_layers_config()
+        admin_layers = config.get("administrative_layers", ["regiones_simplified", "provincias_simplified", "comunas_simplified"])
+        
         fgb_files = glob.glob(os.path.join(DATA_TILES, "*.fgb"))
-        # Exclude administrative layers from the "restrictions" list if desired
-        exclude = ["regiones_simplified", "provincias_simplified", "comunas_simplified"]
-        layers_to_check = [os.path.splitext(os.path.basename(f))[0] for f in fgb_files if os.path.splitext(os.path.basename(f))[0] not in exclude]
+        # Exclude administrative layers from the "restrictions" list
+        layers_to_check = [os.path.splitext(os.path.basename(f))[0] for f in fgb_files 
+                           if os.path.splitext(os.path.basename(f))[0] not in admin_layers 
+                           and not os.path.basename(f).endswith('.lowres.fgb')]
 
         def analyze():
             results = {}
@@ -260,18 +288,24 @@ async def reporte_predio(payload: GeoJSONPayload):
             # Area Total
             total_area_ha = gpd.GeoDataFrame(geometry=[geom], crs="EPSG:4326").to_crs(epsg=32719).area.iloc[0] / 10000.0
             
-            # DPA Info
-            dpa = {"Region": [], "Provincia": [], "Comuna": []}
-            for dpa_layer, key in [("regiones_simplified", "Region"), ("provincias_simplified", "Provincia"), ("comunas_simplified", "Comuna")]:
-                path = os.path.join(DATA_TILES, f"{dpa_layer}.fgb")
+            # DPA Info based on Config
+            dpa = {}
+            admin_cfg = config.get("administrative_config", {}).get("levels", [])
+            for level in admin_cfg:
+                path = os.path.join(DATA_TILES, f"{level['id']}.fgb")
                 dgdf = safe_read_fgb(path, bbox=geom.bounds)
                 if dgdf is not None:
                     hits = dgdf[dgdf.intersects(geom)]
-                    # Try common name field variants
-                    for field in ['region', 'provincia', 'comuna', 'REGION', 'PROVINCIA', 'COMUNA', 'nombre']:
+                    # Common name field variants
+                    found = False
+                    for field in ['region', 'provincia', 'comuna', 'REGION', 'PROVINCIA', 'COMUNA', 'nombre', 'Name', 'NAME']:
                         if field in hits.columns:
-                            dpa[key] = list(set(hits[field].astype(str).tolist()))
+                            dpa[level['target_key']] = list(set(hits[field].astype(str).tolist()))
+                            found = True
                             break
+                    if not found: dpa[level['target_key']] = []
+                else:
+                    dpa[level['target_key']] = []
 
             return {
                 "estado": "exito",

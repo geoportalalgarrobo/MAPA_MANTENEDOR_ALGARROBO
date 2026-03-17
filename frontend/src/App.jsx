@@ -19,6 +19,9 @@ function App() {
 
   const [availableLayers, setAvailableLayers] = useState([]);
   const [activeLayers, setActiveLayers] = useState({ terrenos: true });
+  const [layerGroups, setLayerGroups] = useState([]);
+  const [metadata, setMetadata] = useState({});
+  const [administrativeConfig, setAdministrativeConfig] = useState({});
 
   // Load layers dynamically on mount
   React.useEffect(() => {
@@ -34,10 +37,22 @@ function App() {
           console.log("[App] Capas cargadas:");
           console.table(data.layers);
           setAvailableLayers(layerIds);
+          setLayerGroups(data.groups || []);
+          setMetadata(data.metadata || {});
+          setAdministrativeConfig(data.administrative_config || {});
+          
           const initial = { terrenos: true };
           layerIds.forEach(id => { initial[id] = false; });
           setActiveLayers(initial);
-          setLayerOrder([...layerIds]); // layerIds ya incluye regiones/provincias/comunas_simplified desde el backend
+          
+          // Respect initial display_order from config
+          if (data.display_order) {
+              const ordered = data.display_order.filter(id => layerIds.includes(id) || id === 'terrenos');
+              const missing = layerIds.filter(id => !ordered.includes(id));
+              setLayerOrder([...ordered, ...missing]);
+          } else {
+              setLayerOrder([...layerIds]); 
+          }
         }
       })
       .catch(err => {
@@ -258,6 +273,9 @@ function App() {
           proximityResults={proximityResults}
           showProximityPanel={showProximityPanel}
           setShowProximityPanel={setShowProximityPanel}
+          layerGroups={layerGroups}
+          metadata={metadata}
+          administrativeConfig={administrativeConfig}
         />
       </aside>
 

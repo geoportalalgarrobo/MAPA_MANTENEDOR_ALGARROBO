@@ -1,5 +1,5 @@
 {
-    "last_update": "2026-03-13T20:46:59.721490",
+    "last_update": "2026-03-17T19:27:12.874665",
     "layers": [
         {
             "id": "areas_protegidas",
@@ -179,19 +179,6 @@
                 "codigo",
                 "piso",
                 "formacion"
-            ]
-        },
-        {
-            "id": "ecosistemas_multipart",
-            "file": "Ecosistemas_multipart.json",
-            "fgb": "ecosistemas_multipart.fgb",
-            "fgb_lowres": "ecosistemas_multipart.lowres.fgb",
-            "feature_count": 32279,
-            "attributes": [
-                "codigo",
-                "piso",
-                "formacion",
-                "orig_fid"
             ]
         },
         {

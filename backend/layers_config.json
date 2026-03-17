@@ -1,0 +1,124 @@
+{
+  "administrative_config": {
+    "levels": [
+      {
+        "id": "regiones_simplified",
+        "label": "Región",
+        "target_key": "Region"
+      },
+      {
+        "id": "provincias_simplified",
+        "label": "Provincia",
+        "target_key": "Provincia"
+      },
+      {
+        "id": "comunas_simplified",
+        "label": "Comuna",
+        "target_key": "Comuna"
+      }
+    ]
+  },
+  "administrative_layers": [
+    "regiones_simplified",
+    "provincias_simplified",
+    "comunas_simplified"
+  ],
+  "display_order": [
+    "areas_protegidas",
+    "sitios_prioritarios",
+    "terrenos",
+    "ecosistemas",
+    "ecmpo",
+    "concesiones_acuicultura",
+    "concesiones_mineras_const",
+    "concesiones_mineras_tramite",
+    "comunas_simplified",
+    "provincias_simplified",
+    "regiones_simplified"
+  ],
+  "groups": [
+    {
+      "id": "admin",
+      "name": "Información Administrativa",
+      "is_administrative": true,
+      "layers": [
+        "regiones_simplified",
+        "provincias_simplified",
+        "comunas_simplified"
+      ]
+    },
+    {
+      "id": "restricciones_a",
+      "name": "Restricciones Territoriales (A)",
+      "layers": [
+        "areas_protegidas",
+        "sitios_prioritarios",
+        "ecosistemas",
+        "ecmpo"
+      ]
+    },
+    {
+      "id": "restricciones_b",
+      "name": "Concesiones y Otros (B)",
+      "layers": [
+        "concesiones_acuicultura",
+        "concesiones_mineras_const",
+        "concesiones_mineras_tramite"
+      ]
+    }
+  ],
+  "layer_metadata": {
+    "areas_protegidas": {
+      "name": "Áreas Protegidas",
+      "color": "#60a5fa"
+    },
+    "sitios_prioritarios": {
+      "name": "Sitios Prioritarios",
+      "color": "#c084fc"
+    },
+    "ecosistemas": {
+      "name": "Ecosistemas",
+      "color": "#4ade80",
+      "results_group_by": "formacion",
+      "results_title_field": "piso"
+    },
+    "ecmpo": {
+      "name": "ECMPO",
+      "color": "#fb7185"
+    },
+    "concesiones_acuicultura": {
+      "name": "Concesiones Acuicultura",
+      "color": "#22d3ee",
+      "results_group_by": "titular",
+      "results_subtitle": "estado"
+    },
+    "concesiones_mineras_const": {
+      "name": "Catastro Minero Constituidas",
+      "color": "#fbbf24",
+      "results_group_by": "concesiona",
+      "results_subtitle": "sustancia"
+    },
+    "concesiones_mineras_tramite": {
+      "name": "Catastro Minero en Trámite",
+      "color": "#f59e0b",
+      "results_group_by": "concesiona",
+      "results_subtitle": "etapa"
+    },
+    "comunas_simplified": {
+      "name": "Límites Comunales",
+      "color": "#94a3b8"
+    },
+    "provincias_simplified": {
+      "name": "Límites Provinciales",
+      "color": "#64748b"
+    },
+    "regiones_simplified": {
+      "name": "Límites Regionales",
+      "color": "#475569"
+    },
+    "terrenos": {
+      "name": "Terrenos Analizados",
+      "color": "#34d399"
+    }
+  }
+}
