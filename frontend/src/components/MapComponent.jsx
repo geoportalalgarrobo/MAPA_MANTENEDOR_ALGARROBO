@@ -5,47 +5,21 @@ import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { deserialize } from 'flatgeobuf/lib/mjs/geojson';
 
-const MapComponent = forwardRef(({ onAnalyzePolygon, isAnalyzing, activeLayers, mapStyle, results, onMapReady, availableLayers = [], onProximityPoint, activeDrawMode }, ref) => {
+const MapComponent = forwardRef(({ 
+    onAnalyzePolygon, isAnalyzing, activeLayers, mapStyle, results, onMapReady, 
+    availableLayers = [], onProximityPoint, activeDrawMode, layerOrder, metadata = {} 
+}, ref) => {
     const mapContainer = useRef(null);
     const map = useRef(null);
     const draw = useRef(null);
     const proximityMarker = useRef(null);
     const [mapLoaded, setMapLoaded] = React.useState(false);
 
-    const LAYER_COLORS = {
-        areas_protegidas:            '#60a5fa',
-        sitios_prioritarios:         '#c084fc',
-        ecosistemas:                 '#4ade80',
-        ecosistemas_multipart:       '#22c55e',
-        ecmpo:                       '#fb7185',
-        concesiones_acuicultura:     '#22d3ee',
-        concesiones_mineras_const:   '#fbbf24',
-        concesiones_mineras_tramite: '#f59e0b',
-        comunas_simplified:          '#94a3b8',
-        provincias_simplified:       '#64748b',
-        regiones_simplified:         '#475569',
-        terrenos:                    '#34d399',
-    };
-    const getLayerColor = (id) => LAYER_COLORS[id] || '#94a3b8';
+    const getLayerColor = (id) => metadata[id]?.color || '#94a3b8';
+    const getLayerDisplayName = (id) => metadata[id]?.name || id.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
     const activeDrawModeRef = useRef(activeDrawMode);
     useEffect(() => { activeDrawModeRef.current = activeDrawMode; }, [activeDrawMode]);
-
-    const getLayerDisplayName = (id) => {
-        const names = {
-            areas_protegidas: "Áreas Protegidas",
-            sitios_prioritarios: "Sitios Prioritarios",
-            ecosistemas: "Ecosistemas",
-            terrenos: "Terrenos Analizados",
-            regiones_simplified: "Límites Regionales",
-            provincias_simplified: "Límites Provinciales",
-            comunas_simplified: "Límites Comunales",
-            concesiones_mineras_const: "Catastro Minero Constituidas",
-            concesiones_mineras_tramite: "Catastro Minero en Trámite",
-            ecmpo: "ECMPO"
-        };
-        return names[id] || id.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-    };
 
     useImperativeHandle(ref, () => ({
         clearDrawings() { 

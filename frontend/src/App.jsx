@@ -292,6 +292,7 @@ function App() {
           availableLayers={availableLayers}
           onProximityPoint={handleProximityPoint}
           activeDrawMode={activeDrawMode}
+          metadata={metadata}
         />
       </main>
     </div>
