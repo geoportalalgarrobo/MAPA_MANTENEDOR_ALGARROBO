@@ -354,7 +354,7 @@ const Sidebar = ({ isAnalyzing, results, showResultsPanel, setShowResultsPanel, 
             <div className="flex flex-col h-full bg-slate-900 border-r border-slate-800 p-6 text-slate-200 overflow-y-auto">
                 <header className="mb-8 flex flex-col items-center justify-center text-center">
                     <img src={LogoImage} alt="Logo" className="h-16 w-auto mb-4 opacity-100" />
-                    <h1 className="text-2xl font-bold text-white tracking-tight">Analizador de Restricciones</h1>
+                    <h1 className="text-2xl font-bold text-white tracking-tight">Geoportal</h1>
                     <p className="text-slate-400 text-sm mt-1">Sitios Prioritarios - Ley 21.600 y otras restricciones</p>
                 </header>
 
@@ -369,7 +369,7 @@ const Sidebar = ({ isAnalyzing, results, showResultsPanel, setShowResultsPanel, 
             <div className="flex flex-col h-full bg-slate-900 border-r border-slate-800 p-6 text-slate-200">
                 <header className="mb-6 flex flex-col items-center justify-center text-center">
                     <img src={LogoImage} alt="Logo" className="h-12 w-auto mb-2 opacity-100" />
-                    <h1 className="text-xl font-bold text-white tracking-tight">Analizador de Restricciones</h1>
+                    <h1 className="text-xl font-bold text-white tracking-tight">Geoportal</h1>
                 </header>
                 <div className="bg-red-900/30 border border-red-800/50 rounded-lg p-5 mb-4">
                     <p className="text-red-400 font-medium">{error}</p>
