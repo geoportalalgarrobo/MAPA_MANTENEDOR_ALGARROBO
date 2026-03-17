@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@theme {
+  --color-slate-950: #020617;
+  --color-slate-900: #0f172a;
+  --color-slate-800: #1e293b;
+  --color-slate-700: #334155;
+  --color-slate-500: #64748b;
+  --color-slate-400: #94a3b8;
+  --color-slate-300: #cbd5e1;
+  --color-slate-200: #e2e8f0;
+  --color-slate-100: #f1f5f9;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-800: #1e40af;
+  --color-blue-900: #1e3a8a;
+  --color-red-400: #f87171;
+  --color-red-800: #991b1b;
+  --color-red-900: #7f1d1d;
+  --color-emerald-400: #34d399;
+  --color-emerald-800: #065f46;
+  --color-emerald-900: #064e3b;
+  --color-purple-400: #c084fc;
+  --color-purple-800: #6b21a8;
+  --color-purple-900: #581c87;
+  --color-amber-400: #fbbf24;
+  --color-amber-800: #92400e;
+  --color-amber-900: #78350f;
+}
+
+body {
+  margin: 0;
+  font-family: sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--color-slate-100);
+  background-color: var(--color-slate-950);
+}
+
+/* Custom specific styles for mapping plugins */
+.maplibregl-popup-content {
+  background: #1e293b;
+  color: #f1f5f9;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  padding: 12px;
+}
+
+.maplibregl-popup-close-button {
+  color: #94a3b8;
+}
+
+.maplibregl-ctrl-group {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.maplibregl-ctrl-group button {
+  border-color: #334155;
+}
+
+.maplibregl-ctrl-icon {
+  filter: invert(0.8);
+}
+
+/* Mapbox Draw Control Styling Overrides */
+.mapboxgl-ctrl-group, .maplibregl-ctrl-group {
+    background-color: #0f172a !important;
+    border: 1px solid #334155 !important;
+}
+
+.mapbox-gl-draw_ctrl-draw-btn {
+    filter: invert(0.9);
+}
+
+.mapboxgl-ctrl-group button:hover, .maplibregl-ctrl-group button:hover {
+    background-color: #1e293b !important;
+}
+
+.maplibregl-popup-tip {
+    border-top-color: #0f172a !important;
+    border-bottom-color: #0f172a !important;
+}

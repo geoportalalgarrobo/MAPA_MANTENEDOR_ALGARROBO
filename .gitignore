@@ -1,0 +1,52 @@
+# =============================================
+# Geoportal Chile - .gitignore
+# =============================================
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+*.egg
+venv/
+.venv/
+env/
+*.whl
+
+# ---------- Node / Frontend ----------
+node_modules/
+frontend/dist/
+frontend/.cache/
+.vite/
+
+# ---------- Datos pesados y Binarios ----------
+db/*.sqlite
+!db/*.part*
+
+# Datos crudos (ignorados en git para evitar exceder límites)
+data_raw/
+!data_raw/keys.json
+
+# Los PMTiles suelen ser gigantes, se recomienda Git LFS
+# pmtiles/*.pmtiles
+
+# ---------- IDE / OS ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+Thumbs.db
+.DS_Store
+
+# ---------- Logs / Debug ----------
+*.log
+
+# ---------- Temp ----------
+*.tmp
+*.bak
+
+# ---------- No ignorar archivos necesarios ----------
+!requirements.txt
+!README.md
+!data_raw/keys.json

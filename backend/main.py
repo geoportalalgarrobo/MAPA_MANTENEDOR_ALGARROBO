@@ -1,0 +1,267 @@
+from fastapi import FastAPI, HTTPException, UploadFile, File, Response
+from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from pydantic import BaseModel
+from typing import Dict, Any, List
+import json
+import asyncio
+import os
+import glob
+import logging
+import tempfile
+import shutil
+import geopandas as gpd
+import pandas as pd
+from shapely.geometry import shape, Point
+from shapely import wkt
+from concurrent.futures import ThreadPoolExecutor
+
+# --- CONFIGURATION & LOGGING ---
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("Geoportal")
+
+app = FastAPI(title="Geoportal Chile API", version="2.0.2")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(GZipMiddleware, minimum_size=1000) # Compresión Gzip para JSON > 1KB
+
+# Paths
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_TILES = os.path.join(BASE_DIR, "..", "data_tiles")
+FRONTEND_DIST = os.path.join(BASE_DIR, "..", "frontend", "dist")
+
+# Thread Pool for CPU intensive GIS tasks - Limited to 2 for Railway stability (OOM prevention)
+executor = ThreadPoolExecutor(max_workers=2)
+
+# --- MODELS ---
+class GeoJSONPayload(BaseModel):
+    type: str
+    geometry: Dict[str, Any]
+    properties: Dict[str, Any] = None
+
+# --- UTILS ---
+def safe_read_fgb(path: str, bbox=None):
+    """Safely read a FlatGeobuf file with optional bbox filtering."""
+    try:
+        if not os.path.exists(path):
+            print(f"DEBUG: File NOT FOUND at {path}")
+            return None
+        print(f"DEBUG: Reading FGB {path} (bbox={bbox})")
+        return gpd.read_file(path, bbox=bbox)
+    except Exception as e:
+        logger.error(f"Error reading FGB {path}: {e}")
+        return None
+
+# --- API ENDPOINTS ---
+
+@app.get("/api/health")
+async def health():
+    fgb_files = glob.glob(os.path.join(DATA_TILES, "*.fgb"))
+    return {
+        "status": "online",
+        "version": "2.0.0",
+        "data_tiles_ready": os.path.exists(DATA_TILES),
+        "layers_found": [os.path.basename(f) for f in fgb_files]
+    }
+
+@app.get("/api/layers")
+async def list_layers():
+    """Manifest of all layers with metadata."""
+    catalog_path = os.path.join(DATA_TILES, 'layers.json')
+    if os.path.exists(catalog_path):
+        try:
+            with open(catalog_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except: pass
+    
+    # Fallback if catalog fails
+    fgb_files = glob.glob(os.path.join(DATA_TILES, "*.fgb"))
+    layers = [{"id": os.path.splitext(os.path.basename(f))[0]} for f in fgb_files if not f.endswith('.lowres.fgb')]
+    return {"layers": layers}
+
+@app.get("/api/layers/{layer}.json")
+async def get_layer_geojson(layer: str, lowres: bool = False):
+    """
+    Serves GeoJSON. 
+    Use ?lowres=true for fast map visualization.
+    """
+    suffix = ".lowres.fgb" if lowres else ".fgb"
+    fgb_path = os.path.join(DATA_TILES, f"{layer}{suffix}")
+    
+    # Fallback to standard if lowres requested but missing
+    if lowres and not os.path.exists(fgb_path):
+        fgb_path = os.path.join(DATA_TILES, f"{layer}.fgb")
+    
+    def fetch():
+        try:
+            gdf = safe_read_fgb(fgb_path)
+            if gdf is None or gdf.empty:
+                return None
+                
+            if gdf.crs != "EPSG:4326":
+                gdf = gdf.to_crs(epsg=4326)
+                
+            return gdf.to_json(drop_id=True, na='null', show_bbox=False)
+        except Exception as e:
+            logger.error(f"Error processing layer {layer}: {e}")
+            return None
+
+    loop = asyncio.get_event_loop()
+    try:
+        geojson_data = await loop.run_in_executor(executor, fetch)
+    except Exception as e:
+        logger.error(f"Executor failed for {layer}: {e}")
+        geojson_data = None
+    
+    if geojson_data is None or len(geojson_data) < 10:
+        print(f"DEBUG: Layer {layer} returned empty or null data")
+        return Response(content='{"type": "FeatureCollection", "features": []}', media_type="application/json")
+        
+    headers = {
+        "Cache-Control": "public, max-age=86400", 
+        "X-App-Version": "2.2.0-stable",
+        "X-Debug-Layer": layer
+    }
+    return Response(content=geojson_data, media_type="application/json", headers=headers)
+
+@app.get("/api/feature-info/{layer}/{lat}/{lon}")
+async def get_feature_info(layer: str, lat: float, lon: float):
+    """Point-in-polygon query to get all attributes of a feature at a location."""
+    fgb_path = os.path.join(DATA_TILES, f"{layer}.fgb")
+    p = Point(lon, lat)
+    
+    def query():
+        # Optimization: use a very small bbox for the initial read
+        margin = 0.0001
+        bbox = (lon - margin, lat - margin, lon + margin, lat + margin)
+        gdf = safe_read_fgb(fgb_path, bbox=bbox)
+        if gdf is None or gdf.empty:
+            return None
+        
+        # Exact intersection
+        hit = gdf[gdf.intersects(p)]
+        if hit.empty:
+            return None
+            
+        data = hit.iloc[0].to_dict()
+        if 'geometry' in data: del data['geometry']
+        # Convert all values to strings for display safety
+        return {str(k): (str(v) if v is not None else "") for k, v in data.items()}
+
+    loop = asyncio.get_event_loop()
+    info = await loop.run_in_executor(executor, query)
+    if not info:
+        raise HTTPException(status_code=404, detail="No feature found at this location")
+    return info
+
+@app.post("/api/reporte-predio")
+async def reporte_predio(payload: GeoJSONPayload):
+    """Analyzes a drawn/uploaded polygon against all available FGB layers."""
+    try:
+        geom = shape(payload.geometry)
+        if not geom.is_valid: geom = geom.buffer(0)
+        wkt_geom = geom.wkt
+        
+        fgb_files = glob.glob(os.path.join(DATA_TILES, "*.fgb"))
+        # Exclude administrative layers from the "restrictions" list if desired
+        exclude = ["regiones_simplified", "provincias_simplified", "comunas_simplified"]
+        layers_to_check = [os.path.splitext(os.path.basename(f))[0] for f in fgb_files if os.path.splitext(os.path.basename(f))[0] not in exclude]
+
+        def analyze():
+            results = {}
+            for layer in layers_to_check:
+                try:
+                    path = os.path.join(DATA_TILES, f"{layer}.fgb")
+                    gdf = safe_read_fgb(path, bbox=geom.bounds)
+                    if gdf is not None and not gdf.empty:
+                        # Ensure valid geometries before intersection
+                        gdf.geometry = gdf.geometry.buffer(0)
+                        inter = gdf[gdf.intersects(geom)].copy()
+                        if not inter.empty:
+                            # Calculate area of intersection in Ha (UTM 19S)
+                            try:
+                                inter_geom = inter.intersection(geom)
+                                area_inter = inter_geom.to_crs(epsg=32719).area / 10000.0
+                                inter['area_interseccion_ha'] = area_inter
+                            except:
+                                inter['area_interseccion_ha'] = 0.0
+                            
+                            inter = inter.drop(columns=['geometry'], errors='ignore')
+                            inter = inter.where(pd.notnull(inter), None)
+                            results[layer] = inter.to_dict('records')
+                except Exception as le:
+                    logger.error(f"Error analyzing layer {layer}: {le}")
+                    continue
+            
+            # Area Total
+            total_area_ha = gpd.GeoDataFrame(geometry=[geom], crs="EPSG:4326").to_crs(epsg=32719).area.iloc[0] / 10000.0
+            
+            # DPA Info
+            dpa = {"Region": [], "Provincia": [], "Comuna": []}
+            for dpa_layer, key in [("regiones_simplified", "Region"), ("provincias_simplified", "Provincia"), ("comunas_simplified", "Comuna")]:
+                path = os.path.join(DATA_TILES, f"{dpa_layer}.fgb")
+                dgdf = safe_read_fgb(path, bbox=geom.bounds)
+                if dgdf is not None:
+                    hits = dgdf[dgdf.intersects(geom)]
+                    # Try common name field variants
+                    for field in ['region', 'provincia', 'comuna', 'REGION', 'PROVINCIA', 'COMUNA', 'nombre']:
+                        if field in hits.columns:
+                            dpa[key] = list(set(hits[field].astype(str).tolist()))
+                            break
+
+            return {
+                "estado": "exito",
+                "area_total_ha": round(total_area_ha, 2),
+                "dpa": dpa,
+                "restricciones": results
+            }
+
+        loop = asyncio.get_event_loop()
+        report = await loop.run_in_executor(executor, analyze)
+        return report
+    except Exception as e:
+        logger.error(f"Error in analyze: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/upload-predio")
+async def upload_predio(file: UploadFile = File(...)):
+    """Handles spatial file upload and returns it as GeoJSON."""
+    suffix = os.path.splitext(file.filename)[1].lower()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        shutil.copyfileobj(file.file, tmp)
+        tmp_path = tmp.name
+    
+    def process():
+        try:
+            # Handle zips automatically with geopandas
+            path = tmp_path if not tmp_path.endswith('.zip') else f"zip://{tmp_path}"
+            gdf = gpd.read_file(path)
+            gdf = gdf.dropna(subset=['geometry']).to_crs(epsg=4326)
+            return json.loads(gdf.to_json())
+        finally:
+            if os.path.exists(tmp_path): os.remove(tmp_path)
+
+    loop = asyncio.get_event_loop()
+    try:
+        return await loop.run_in_executor(executor, process)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# --- STATIC FILES ---
+# Expose FGB files for direct "Reparto en Bicicleta" (Option 2)
+if os.path.exists(DATA_TILES):
+    app.mount("/api/raw-tiles", StaticFiles(directory=DATA_TILES), name="tiles")
+
+if os.path.exists(FRONTEND_DIST):
+    app.mount("/static", StaticFiles(directory=FRONTEND_DIST), name="frontend")
+    @app.get("/")
+    async def root():
+        return RedirectResponse(url="/static/index.html")
+else:
+    @app.get("/")
+    async def root():
+        return {"message": "Geoportal API v2.2.0 Online. Frontend not found in /dist."}

@@ -1,0 +1,25 @@
+# Ignorar carpetas de dependencias locales
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+
+# Ignorar entornos virtuales
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+
+# Ignorar bases de datos locales pesadas
+db/*.sqlite
+*.fgb
+# Nota: Si los .fgb son necesarios para el despliegue, NO los ignores. 
+# Pero usualmente se recomienda que el build sea limpio.
+
+# Ignorar archivos de IDE
+.vscode/
+.idea/
+.git/
+.github/
+.ipynb_checkpoints/
