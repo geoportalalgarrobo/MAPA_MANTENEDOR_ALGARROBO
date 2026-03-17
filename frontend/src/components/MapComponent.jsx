@@ -9,6 +9,7 @@ const MapComponent = forwardRef(({ onAnalyzePolygon, isAnalyzing, activeLayers, 
     const mapContainer = useRef(null);
     const map = useRef(null);
     const draw = useRef(null);
+    const proximityMarker = useRef(null);
     const [mapLoaded, setMapLoaded] = React.useState(false);
 
     const LAYER_COLORS = {
@@ -27,6 +28,9 @@ const MapComponent = forwardRef(({ onAnalyzePolygon, isAnalyzing, activeLayers, 
     };
     const getLayerColor = (id) => LAYER_COLORS[id] || '#94a3b8';
 
+    const activeDrawModeRef = useRef(activeDrawMode);
+    useEffect(() => { activeDrawModeRef.current = activeDrawMode; }, [activeDrawMode]);
+
     const getLayerDisplayName = (id) => {
         const names = {
             areas_protegidas: "Áreas Protegidas",
@@ -44,10 +48,18 @@ const MapComponent = forwardRef(({ onAnalyzePolygon, isAnalyzing, activeLayers, 
     };
 
     useImperativeHandle(ref, () => ({
-        clearDrawings() { if (draw.current) draw.current.deleteAll(); },
+        clearDrawings() { 
+            if (draw.current) draw.current.deleteAll(); 
+            if (proximityMarker.current) { proximityMarker.current.remove(); proximityMarker.current = null; }
+        },
         startDrawing(mode = 'draw_polygon') {
             if (draw.current) {
-                draw.current.changeMode(mode);
+                if (proximityMarker.current) { proximityMarker.current.remove(); proximityMarker.current = null; }
+                if (mode === 'proximity_point' || mode === 'simple_select') {
+                    draw.current.changeMode('simple_select');
+                } else {
+                    draw.current.changeMode(mode);
+                }
                 map.current.getCanvas().style.cursor = 'crosshair';
             }
         },
@@ -163,10 +175,13 @@ const MapComponent = forwardRef(({ onAnalyzePolygon, isAnalyzing, activeLayers, 
 
             const layerIds = availableLayers.flatMap(id => [`${id}-fill`]);
 
-            if (activeDrawMode === 'proximity_point') {
+            if (activeDrawModeRef.current === 'proximity_point') {
                 const { lat, lng } = e.lngLat;
                 onProximityPoint(lat, lng);
-                new maplibregl.Marker({ color: '#f97316' })
+                
+                if (proximityMarker.current) proximityMarker.current.remove();
+                
+                proximityMarker.current = new maplibregl.Marker({ color: '#f97316' })
                     .setLngLat([lng, lat])
                     .addTo(map.current);
                 return;
@@ -212,7 +227,7 @@ const MapComponent = forwardRef(({ onAnalyzePolygon, isAnalyzing, activeLayers, 
         map.current.on('mousemove', (e) => {
             if (!mapLoaded) return;
             const features = map.current.queryRenderedFeatures(e.point);
-            if (activeDrawMode === 'proximity_point') {
+            if (activeDrawModeRef.current === 'proximity_point') {
                 map.current.getCanvas().style.cursor = 'crosshair';
             } else {
                 map.current.getCanvas().style.cursor = features.length > 0 ? 'pointer' : '';

@@ -52,7 +52,10 @@ const Sidebar = ({ isAnalyzing, results, showResultsPanel, setShowResultsPanel, 
         concesiones_acuicultura: "Concesiones Acuicultura"
     };
 
-    const getLayerDisplayName = (id) => layerNames[id] || id.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    const getLayerDisplayName = (id) => {
+        const cleanId = id.replace('.lowres', '').replace('_simplified', '');
+        return layerNames[cleanId] || cleanId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    };
 
     const LAYER_COLORS = {
         areas_protegidas:          '#60a5fa',
@@ -363,11 +366,35 @@ const Sidebar = ({ isAnalyzing, results, showResultsPanel, setShowResultsPanel, 
                                                         <span className="text-[9px] text-slate-500">{formatNumber(sumArea(items))} ha</span>
                                                     </div>
                                                     {expandedFormations[lId] && (
-                                                        <div className="p-2 space-y-1 bg-slate-950/20">
+                                                        <div className="p-3 space-y-3 bg-slate-950/40">
                                                             {items.map((item, i) => (
-                                                                <div key={i} className="flex justify-between text-[9px]">
-                                                                    <span className="text-slate-400 truncate w-32">{item.nombre || item.Name || 'Item'}</span>
-                                                                    <span className="text-slate-200 font-bold">{formatNumber(item.area_interseccion_ha)} ha</span>
+                                                                <div key={i} className="text-[11px] text-slate-400 bg-slate-900/60 p-3 rounded-lg border border-slate-700/50 flex flex-col gap-2 shadow-sm">
+                                                                    <header className="flex flex-col">
+                                                                         <span className="block font-bold text-slate-100 uppercase tracking-tight leading-tight">
+                                                                             {item.nombre || item.Name || item.NOMBRE || item.nombre_sp || `Entidad ${i + 1}`}
+                                                                         </span>
+                                                                         <span className="text-[9px] text-slate-500 font-medium italic mt-0.5">ID: {item.FID || item.id || 'N/A'}</span>
+                                                                    </header>
+
+                                                                    <div className="grid grid-cols-1 gap-1.5 py-1.5 text-[10px] border-y border-slate-700/30">
+                                                                        {Object.entries(item).map(([key, value]) => {
+                                                                            if (['geometry', 'area_interseccion_ha', 'nombre', 'Name', 'NOMBRE', 'FID', 'id'].some(ex => key.toLowerCase().includes(ex.toLowerCase()))) return null;
+                                                                            if (value === null || value === "" || value === undefined) return null;
+                                                                            return (
+                                                                                <div key={key} className="flex flex-col border-l-2 border-slate-800 pl-2">
+                                                                                    <span className="text-slate-600 font-bold uppercase text-[8px] tracking-tighter">{key.replace(/_/g, ' ')}</span>
+                                                                                    <span className="text-slate-300 break-words leading-snug">{String(value)}</span>
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                    
+                                                                    <footer className="pt-2 flex flex-col gap-1">
+                                                                         <div className="flex justify-between items-center bg-blue-500/5 p-2 rounded-md border border-blue-500/10">
+                                                                             <span className="text-blue-400 font-bold">Afectación: {formatNumber(item.area_interseccion_ha)} ha</span>
+                                                                             <span className="text-slate-500 font-medium">{formatNumber(totalArea > 0 ? (item.area_interseccion_ha / totalArea) * 100 : 0, 1)}%</span>
+                                                                         </div>
+                                                                    </footer>
                                                                 </div>
                                                             ))}
                                                         </div>
