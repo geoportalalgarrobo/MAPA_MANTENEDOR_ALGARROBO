@@ -5,18 +5,11 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 
-from backend.unidor import unir_db
 
 def main():
     port = int(os.environ.get("PORT", 8080))
     print(f"\n🚀 GEOPORTAL v2.2.0 STARTUP")
     
-    # Asegurar base de datos integrada
-    try:
-        unir_db()
-    except Exception as e:
-        print(f"⚠️ Error al unir base de datos (puede no ser necesaria): {e}")
-        
     print(f"🌍 PORT: {port}")
     
     # Run uvicorn

@@ -11,10 +11,10 @@ import LogoImage from '../assets/Logo.png';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const Sidebar = ({ 
-    isAnalyzing, results, showResultsPanel, setShowResultsPanel, error, onReset, 
-    onStartDrawing, activeDrawMode, onFileUpload, activeLayers, onToggleLayer, 
-    mapStyle, setMapStyle, onClearHistory, layerOrder, onReorderLayers, 
+const Sidebar = ({
+    isAnalyzing, results, showResultsPanel, setShowResultsPanel, error, onReset,
+    onStartDrawing, activeDrawMode, onFileUpload, activeLayers, onToggleLayer,
+    mapStyle, setMapStyle, onClearHistory, layerOrder, onReorderLayers,
     availableLayers = [], proximityResults, showProximityPanel, setShowProximityPanel,
     layerGroups = [], metadata = {}, administrativeConfig = {}
 }) => {
@@ -24,7 +24,7 @@ const Sidebar = ({
     const [compareIndices, setCompareIndices] = React.useState([]);
     const [viewMode, setViewMode] = React.useState('history'); // history, comparison, proximity
     const [showDownloadMenu, setShowDownloadMenu] = React.useState(false);
-    
+
     // Drag and Drop state
     const [draggedLayer, setDraggedLayer] = React.useState(null);
 
@@ -115,16 +115,16 @@ const Sidebar = ({
         if (!window.jspdf) return alert("Biblioteca PDF no cargada");
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-        
+
         doc.setFillColor(15, 23, 42); doc.rect(0, 0, 210, 40, 'F');
         doc.setTextColor(255, 255, 255); doc.setFontSize(24); doc.text("GEOPORTAL", 15, 20);
         doc.setFontSize(10); doc.text("FICHA TERRITORIAL", 15, 30);
         doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 160, 20);
-        
+
         doc.setTextColor(15, 23, 42); doc.setFontSize(18); doc.text(resItem.featureName, 15, 55);
         doc.setFontSize(12); doc.text("DATOS GENERALES", 15, 70);
         doc.line(15, 72, 195, 72);
-        
+
         doc.setFontSize(10);
         doc.text(`Superficie Total: ${formatNumber(resItem.area_total_ha)} ha`, 15, 80);
         // Dynamic admin location lines from config
@@ -134,7 +134,7 @@ const Sidebar = ({
             doc.text(`${level.label}: ${val}`, 15, locY);
             locY += 6;
         });
-        
+
         doc.setFontSize(12); doc.text("AFECTACIONES", 15, 110); doc.line(15, 112, 195, 112);
         let y = 120;
         Object.entries(resItem.restricciones || {}).forEach(([layerId, items]) => {
@@ -212,7 +212,7 @@ const Sidebar = ({
                     <div className="mt-3 grid grid-cols-1 gap-1.5 border-t border-slate-800/30 pt-3 opacity-80 group-hover/item:opacity-100 transition-opacity">
                         {Object.entries(item).map(([key, value]) => {
                             if (['geometry', 'area_interseccion_ha', 'nombre', 'Name', 'NOMBRE', 'FID', 'id'].some(ex => key.toLowerCase().includes(ex.toLowerCase()))) return null;
-                            if (key === subtitleField || key === titleField) return null; 
+                            if (key === subtitleField || key === titleField) return null;
                             if (value === null || value === "" || value === undefined || value === "null") return null;
                             return (
                                 <div key={key} className="flex flex-row gap-2 border-l-2 border-slate-700/30 pl-3">
@@ -275,7 +275,7 @@ const Sidebar = ({
                     <div key={i} className="bg-slate-800/40 border border-slate-700/50 rounded-lg p-3 hover:bg-slate-800/60 transition-colors">
                         <div className="flex justify-between items-start mb-1">
                             <span className="text-[10px] font-bold text-slate-500 uppercase">{item.layer_display}</span>
-                            <span className="text-orange-400 font-bold text-xs">{item.distance_m > 1000 ? `${(item.distance_m/1000).toFixed(2)} km` : `${Math.round(item.distance_m)} m`}</span>
+                            <span className="text-orange-400 font-bold text-xs">{item.distance_m > 1000 ? `${(item.distance_m / 1000).toFixed(2)} km` : `${Math.round(item.distance_m)} m`}</span>
                         </div>
                         <div className="text-xs text-slate-200 truncate font-semibold">{item.feature_name}</div>
                     </div>
@@ -285,12 +285,12 @@ const Sidebar = ({
     );
 
     const renderLayerSwitch = (layerId) => (
-        <label key={layerId} 
-               className={`flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800/50 transition-all group cursor-pointer ${draggedLayer === layerId ? 'opacity-30' : ''}`}
-               draggable
-               onDragStart={(e) => handleDragStart(e, layerId)}
-               onDragOver={(e) => handleDragOver(e, layerId)}
-               onDragEnd={handleDragEnd}>
+        <label key={layerId}
+            className={`flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800/50 transition-all group cursor-pointer ${draggedLayer === layerId ? 'opacity-30' : ''}`}
+            draggable
+            onDragStart={(e) => handleDragStart(e, layerId)}
+            onDragOver={(e) => handleDragOver(e, layerId)}
+            onDragEnd={handleDragEnd}>
             <div className="flex items-center gap-2 flex-1 min-w-0">
                 <GripVertical className="w-4 h-4 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab" />
                 <div className="relative">
@@ -299,7 +299,7 @@ const Sidebar = ({
                         <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${activeLayers[layerId] ? 'left-5' : 'left-1'}`} />
                     </div>
                 </div>
-                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{backgroundColor: getLayerColor(layerId)}}></div>
+                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: getLayerColor(layerId) }}></div>
                 <span className="text-xs text-slate-400 group-hover:text-slate-100 transition-colors truncate font-medium">{getLayerDisplayName(layerId)}</span>
             </div>
         </label>
@@ -336,13 +336,13 @@ const Sidebar = ({
                     </div>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 group-hover:text-emerald-300 transition-colors">Terrenos Analizados</span>
                 </label>
-                
+
                 {activeLayers['terrenos'] && results?.length > 0 && (
                     <div className="mt-4 space-y-3">
-                         <button onClick={() => setShowResultsPanel(true)} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-lg shadow-emerald-900/20">
+                        <button onClick={() => setShowResultsPanel(true)} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-lg shadow-emerald-900/20">
                             Ver Resultados ({results.length})
-                         </button>
-                         <div className="flex gap-2">
+                        </button>
+                        <div className="flex gap-2">
                             <div className="relative flex-1">
                                 <button onClick={() => setShowDownloadMenu(!showDownloadMenu)} className="w-full bg-slate-800 border border-slate-700 py-2 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1.5 hover:bg-slate-700 transition-all text-slate-300">
                                     <Download className="w-3.5 h-3.5" /> Exportar
@@ -355,7 +355,7 @@ const Sidebar = ({
                                 )}
                             </div>
                             <button onClick={onClearHistory} className="flex-1 bg-red-950/20 border border-red-900/30 text-red-400 py-2 rounded-lg text-[10px] font-bold hover:bg-red-900/20 transition-all">Limpiar</button>
-                         </div>
+                        </div>
                     </div>
                 )}
             </div>
@@ -371,7 +371,7 @@ const Sidebar = ({
                         .map(id => renderLayerSwitch(id))}
                 </div>
             </div>
-            
+
             {/* Map Styles */}
             <div className="mt-2 bg-slate-950/50 p-4 rounded-xl border border-slate-900">
                 <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3 text-center">Mapa Base</h4>
@@ -416,9 +416,13 @@ const Sidebar = ({
                     <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full"></div>
                     <img src={LogoImage} alt="Logo" className="h-20 w-auto relative drop-shadow-2xl" />
                 </div>
-                <h1 className="text-3xl font-black text-white tracking-[0.2em] font-heading uppercase italic">Geoportal</h1>
+                <h1 className="text-3xl font-black text-white tracking-[0.2em] font-heading uppercase italic">
+                    Geoportal
+                </h1>
                 <div className="h-1 w-12 bg-blue-500 mt-2 mb-3 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
-                <p className="text-slate-500 text-[9px] uppercase font-bold tracking-[0.4em] opacity-80 font-heading">Análisis Territorial Inteligente</p>
+                <p className="text-slate-500 text-[9px] uppercase font-bold tracking-[0.4em] opacity-80 font-heading">
+                    💡 Sube el polígono de tu terreno en un archivo espacial (.geojson, .kml, shapefiles en .zip) o dibújalo. Haz doble clic para terminar el dibujo.
+                </p>
             </header>
             {renderControls()}
         </div>
@@ -432,10 +436,10 @@ const Sidebar = ({
             <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
                 <header className="mb-8 flex justify-between items-center border-b border-slate-800/50 pb-6">
                     <div>
-                        <h2 className="text-2xl font-black text-white italic tracking-tight uppercase font-heading">Resultados</h2>
+                        <h2 className="text-2xl font-medium text-white italic tracking-tight font-heading">Resultados</h2>
                         <div className="flex items-center gap-2 mt-1">
                             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.15em] font-mono-tech">{results.length} Sitios Analizados</span>
+                            <span className="text-[10px] text-slate-500 font-medium tracking-[0.15em] font-mono-tech">{results.length} Sitios Analizados</span>
                         </div>
                     </div>
                     <div className="flex gap-2">
@@ -450,7 +454,7 @@ const Sidebar = ({
                     {results.map((resItem, idx) => {
                         const isExpanded = expandedFeatures.has(idx);
                         const isComparing = compareIndices.includes(idx);
-                        
+
                         const toggleExpand = () => {
                             const newSet = new Set(expandedFeatures);
                             if (newSet.has(idx)) newSet.delete(idx);
@@ -458,7 +462,7 @@ const Sidebar = ({
                             setExpandedFeatures(newSet);
                         };
                         const totalArea = resItem.area_total_ha || 0;
-                        
+
                         const restArea = Object.entries(resItem.restricciones || {}).reduce((s, [lid, items]) => s + sumArea(items), 0);
 
                         return (
@@ -466,12 +470,12 @@ const Sidebar = ({
                                 <div className="p-4 flex justify-between items-center">
                                     <div onClick={toggleExpand} className="flex-1 cursor-pointer">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <span className="px-1.5 py-0.5 rounded bg-slate-700 text-[8px] font-black text-white uppercase tracking-tighter">#{idx + 1}</span>
-                                            <span className="block text-sm font-black text-white truncate max-w-[160px] tracking-tight">{resItem.featureName}</span>
+                                            <span className="px-1.5 py-0.5 rounded bg-slate-700 text-[8px] font-medium text-white tracking-tighter">#{idx + 1}</span>
+                                            <span className="block text-sm font-medium text-white truncate max-w-[160px] tracking-tight">{resItem.featureName}</span>
                                         </div>
                                         <div className="flex gap-3">
-                                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{formatNumber(totalArea)} ha</span>
-                                            {restArea > 0 && <span className="text-[10px] text-red-500 font-black uppercase flex items-center gap-1 shadow-sm">⚠️ Restringido</span>}
+                                            <span className="text-[10px] text-slate-500 font-medium tracking-widest">{formatNumber(totalArea)} ha</span>
+                                            {restArea > 0 && <span className="text-[10px] text-red-500 font-medium flex items-center gap-1 shadow-sm">⚠️ Restringido</span>}
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
@@ -482,13 +486,13 @@ const Sidebar = ({
                                 </div>
                                 {isExpanded && (
                                     <div className="p-5 border-t border-slate-800 bg-slate-900/60 animate-in fade-in slide-in-from-top-4 duration-300 space-y-4">
-                                        
+
                                         {/* 1. AREA CARD */}
                                         <div className="bg-slate-950/40 p-5 rounded-2xl border border-slate-800/50 shadow-inner">
-                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2 block font-heading">Área Calculada</span>
+                                            <span className="text-[10px] font-medium text-slate-500 tracking-[0.2em] mb-2 block font-heading">Área Calculada</span>
                                             <div className="flex items-baseline gap-2 font-mono-tech">
-                                                <span className="text-3xl font-black text-white tracking-tighter italic leading-none">{formatNumber(totalArea)}</span>
-                                                <span className="text-xs text-slate-500 italic font-medium uppercase">ha</span>
+                                                <span className="text-3xl font-medium text-white tracking-tighter italic leading-none">{formatNumber(totalArea)}</span>
+                                                <span className="text-xs text-slate-500 italic font-medium">ha</span>
                                             </div>
                                         </div>
 
@@ -496,12 +500,12 @@ const Sidebar = ({
                                         <div className="bg-slate-950/40 p-5 rounded-2xl border border-slate-800/50 shadow-inner">
                                             <header className="flex items-center gap-2 mb-4 border-b border-slate-800 pb-3">
                                                 <MapPin className="w-4 h-4 text-slate-400" />
-                                                <span className="text-xs font-bold text-slate-200 uppercase tracking-wide">Ubicación Administrativa</span>
+                                                <span className="text-xs font-medium text-slate-200 tracking-wide">Ubicación Administrativa</span>
                                             </header>
                                             <div className="space-y-3">
                                                 {(administrativeConfig?.levels || []).map((level, lIdx) => (
                                                     <div key={lIdx} className="flex flex-col gap-0.5">
-                                                        <span className="text-[10px] font-black text-slate-600 uppercase">{level.label}:</span>
+                                                        <span className="text-[10px] font-medium text-slate-600">{level.label}:</span>
                                                         <span className="text-[11px] text-slate-300 font-medium">
                                                             {resItem.dpa?.[level.target_key]?.join(', ') || 'N/A'}
                                                         </span>
@@ -516,7 +520,7 @@ const Sidebar = ({
                                                 const groupLayers = group.layers;
                                                 const matches = Object.entries(resItem.restricciones || {})
                                                     .filter(([lid, items]) => groupLayers.includes(lid) && items.length > 0);
-                                                
+
                                                 if (matches.length === 0) return null;
 
                                                 const groupData = matches.map(([lid, items]) => ({
@@ -544,16 +548,16 @@ const Sidebar = ({
                                                         <div className="flex flex-col gap-5">
                                                             <div className="flex justify-center">
                                                                 <div className="relative w-32 h-32 flex-shrink-0">
-                                                                    <Doughnut data={chartData} options={{ 
-                                                                        cutout: '75%', 
-                                                                        plugins: { 
-                                                                            tooltip: { enabled: true }, 
-                                                                            legend: { display: false } 
+                                                                    <Doughnut data={chartData} options={{
+                                                                        cutout: '75%',
+                                                                        plugins: {
+                                                                            tooltip: { enabled: true },
+                                                                            legend: { display: false }
                                                                         },
                                                                         maintainAspectRatio: false
                                                                     }} />
                                                                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                                                        <span className="text-[10px] font-black text-white leading-none">{formatNumber((totalGroupRest/totalArea)*100, 0)}%</span>
+                                                                        <span className="text-[10px] font-black text-white leading-none">{formatNumber((totalGroupRest / totalArea) * 100, 0)}%</span>
                                                                         <span className="text-[7px] text-slate-500 uppercase font-bold">Afectado</span>
                                                                     </div>
                                                                 </div>
@@ -562,12 +566,12 @@ const Sidebar = ({
                                                                 {groupData.map((d, i) => (
                                                                     <div key={i} className="flex items-center justify-between group/leg gap-3">
                                                                         <div className="flex items-center gap-2 overflow-hidden flex-1">
-                                                                            <div className="w-2 h-2 rounded-full flex-shrink-0 shadow-[0_0_5px_rgba(0,0,0,0.3)]" style={{backgroundColor: d.color}}></div>
+                                                                            <div className="w-2 h-2 rounded-full flex-shrink-0 shadow-[0_0_5px_rgba(0,0,0,0.3)]" style={{ backgroundColor: d.color }}></div>
                                                                             <span className="text-[10px] font-bold text-slate-400 truncate uppercase tracking-tight group-hover/leg:text-slate-100 transition-colors font-heading" title={d.label}>{d.label}</span>
                                                                         </div>
                                                                         <div className="flex items-center gap-2">
                                                                             <span className="text-[9px] font-medium text-slate-500 font-mono-tech">{formatNumber(d.value)} ha</span>
-                                                                            <span className="text-[10px] font-black text-slate-300 font-mono-tech min-w-[35px] text-right">{formatNumber((d.value/totalArea)*100, 1)}%</span>
+                                                                            <span className="text-[10px] font-black text-slate-300 font-mono-tech min-w-[35px] text-right">{formatNumber((d.value / totalArea) * 100, 1)}%</span>
                                                                         </div>
                                                                     </div>
                                                                 ))}
@@ -578,7 +582,7 @@ const Sidebar = ({
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
                                                                         <span className="text-[9px] font-medium text-emerald-900/50 font-mono-tech">{formatNumber(sinRest)} ha</span>
-                                                                        <span className="text-[10px] font-black text-emerald-500 font-mono-tech min-w-[35px] text-right">{formatNumber((sinRest/totalArea)*100, 1)}%</span>
+                                                                        <span className="text-[10px] font-black text-emerald-500 font-mono-tech min-w-[35px] text-right">{formatNumber((sinRest / totalArea) * 100, 1)}%</span>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -593,7 +597,7 @@ const Sidebar = ({
                                             {layerGroups.filter(g => !g.is_administrative).map(group => {
                                                 const groupMatches = Object.entries(resItem.restricciones || {})
                                                     .filter(([lId, items]) => group.layers.includes(lId) && items.length > 0);
-                                                
+
                                                 if (groupMatches.length === 0) return null;
 
                                                 return (
@@ -603,7 +607,7 @@ const Sidebar = ({
                                                             <div key={lId} className="border border-slate-800 rounded-xl overflow-hidden bg-slate-900/60 shadow-inner">
                                                                 <div onClick={() => toggleFormation(lId)} className="p-3 flex justify-between items-center gap-2 cursor-pointer hover:bg-slate-800/30 transition-colors">
                                                                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-[0_0_8px_rgba(255,255,255,0.1)]" style={{backgroundColor: getLayerColor(lId)}}></div>
+                                                                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-[0_0_8px_rgba(255,255,255,0.1)]" style={{ backgroundColor: getLayerColor(lId) }}></div>
                                                                         <span className="text-[10px] font-medium text-slate-200 tracking-tight leading-tight flex-1">{getLayerDisplayName(lId)}</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-2 flex-shrink-0">
@@ -631,13 +635,13 @@ const Sidebar = ({
                                                                                     const isGroupExpanded = expandedGroups[`${lId}-${groupName}`];
                                                                                     return (
                                                                                         <div key={groupName} className="space-y-3">
-                                                                                            <div 
+                                                                                            <div
                                                                                                 onClick={() => toggleGroup(lId, groupName)}
                                                                                                 className="flex items-center justify-between p-2 rounded-lg bg-slate-800/40 border border-slate-700/30 cursor-pointer hover:bg-slate-800/60 transition-all"
                                                                                             >
                                                                                                 <div className="flex flex-col">
                                                                                                     <span className="text-[11px] font-medium text-white tracking-tight">{groupName}</span>
-                                                                                                    <span className="text-[9px] font-bold text-orange-400/80">Afectación total: {formatNumber(groupData.total)} ha ({formatNumber(totalArea > 0 ? (groupData.total/totalArea)*100 : 0, 1)}%)</span>
+                                                                                                    <span className="text-[9px] font-bold text-orange-400/80">Afectación total: {formatNumber(groupData.total)} ha ({formatNumber(totalArea > 0 ? (groupData.total / totalArea) * 100 : 0, 1)}%)</span>
                                                                                                 </div>
                                                                                                 <ChevronDown className={`w-4 h-4 text-slate-500 transition-all ${isGroupExpanded ? 'rotate-180 text-white' : ''}`} />
                                                                                             </div>
@@ -648,7 +652,7 @@ const Sidebar = ({
                                                                                             )}
                                                                                         </div>
                                                                                     );
-                                                                                 });
+                                                                                });
                                                                             }
                                                                             return items.map((item, i) => renderItemCard(item, i, subtitleField, titleField, totalArea));
                                                                         })()}
