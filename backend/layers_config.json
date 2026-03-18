@@ -41,6 +41,7 @@
       "id": "admin",
       "name": "Información Administrativa",
       "is_administrative": true,
+      "graphic": false,
       "layers": [
         "regiones_simplified",
         "provincias_simplified",
@@ -50,6 +51,7 @@
     {
       "id": "restricciones_a",
       "name": "Restricciones Territoriales",
+      "graphic": true,
       "layers": [
         "areas_protegidas",
         "sitios_prioritarios",
@@ -62,6 +64,7 @@
     {
       "id": "ecosistema",
       "name": "Ecosistema",
+      "graphic": true,
       "layers": [
         "ecosistemas"
       ]

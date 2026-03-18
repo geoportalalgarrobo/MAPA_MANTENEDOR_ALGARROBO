@@ -203,7 +203,7 @@ const Sidebar = ({
                             {titleField ? item[titleField] : (item.nombre || item.Name || item.NOMBRE || item.nombre_sp || `Entidad ${i + 1}`)}
                         </span>
                         {subtitleField && item[subtitleField] && (
-                            <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700/50 font-bold uppercase font-mono-tech">
+                            <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700/50 font-medium font-mono-tech">
                                 {String(item[subtitleField])}
                             </span>
                         )}
@@ -512,7 +512,7 @@ const Sidebar = ({
 
                                         {/* 3. CHARTS PER GROUP */}
                                         <div className="space-y-4">
-                                            {layerGroups.filter(g => !g.is_administrative).map(group => {
+                                            {layerGroups.filter(g => g.graphic).map(group => {
                                                 const groupLayers = group.layers;
                                                 const matches = Object.entries(resItem.restricciones || {})
                                                     .filter(([lid, items]) => groupLayers.includes(lid) && items.length > 0);
@@ -636,7 +636,7 @@ const Sidebar = ({
                                                                                                 className="flex items-center justify-between p-2 rounded-lg bg-slate-800/40 border border-slate-700/30 cursor-pointer hover:bg-slate-800/60 transition-all"
                                                                                             >
                                                                                                 <div className="flex flex-col">
-                                                                                                    <span className="text-[11px] font-black text-white uppercase tracking-tight italic">{groupName}</span>
+                                                                                                    <span className="text-[11px] font-medium text-white tracking-tight">{groupName}</span>
                                                                                                     <span className="text-[9px] font-bold text-orange-400/80">Afectación total: {formatNumber(groupData.total)} ha ({formatNumber(totalArea > 0 ? (groupData.total/totalArea)*100 : 0, 1)}%)</span>
                                                                                                 </div>
                                                                                                 <ChevronDown className={`w-4 h-4 text-slate-500 transition-all ${isGroupExpanded ? 'rotate-180 text-white' : ''}`} />
