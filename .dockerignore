@@ -13,7 +13,6 @@ __pycache__/
 
 # Ignorar bases de datos locales pesadas
 db/*.sqlite
-*.fgb
 # Nota: Si los .fgb son necesarios para el despliegue, NO los ignores. 
 # Pero usualmente se recomienda que el build sea limpio.
 

@@ -340,35 +340,16 @@ const Sidebar = ({
                 )}
             </div>
 
-            {/* Grouped Reference Layers */}
-            <div className="space-y-6">
-                {layerGroups.map(group => (
-                    <div key={group.id} className="bg-slate-900/30 p-1 rounded-xl">
-                        <header className="px-3 py-2 flex items-center justify-between">
-                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{group.name}</h4>
-                            {group.is_administrative && <span className="text-[8px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded italic">Solo Referencia</span>}
-                        </header>
-                        <div className="mt-1 space-y-0.5">
-                            {layerOrder
-                                .filter(id => group.layers.includes(id))
-                                .map(id => renderLayerSwitch(id))}
-                        </div>
-                    </div>
-                ))}
-                
-                {/* Ungrouped Layers Fallback */}
-                {availableLayers.some(id => !layerGroups.some(g => g.layers.includes(id))) && (
-                    <div className="bg-slate-900/30 p-1 rounded-xl">
-                        <header className="px-3 py-2">
-                             <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Otras Capas</h4>
-                        </header>
-                        <div className="mt-1 space-y-0.5">
-                            {layerOrder
-                                .filter(id => !layerGroups.some(g => g.layers.includes(id)))
-                                .map(id => renderLayerSwitch(id))}
-                        </div>
-                    </div>
-                )}
+            {/* All Reference Layers (Flat List for Visualization) */}
+            <div className="bg-slate-900/30 p-1 rounded-xl">
+                <header className="px-3 py-2">
+                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Capas de Información</h4>
+                </header>
+                <div className="mt-1 space-y-0.5">
+                    {layerOrder
+                        .filter(id => id !== 'terrenos') // 'terrenos' has its own section
+                        .map(id => renderLayerSwitch(id))}
+                </div>
             </div>
             
             {/* Map Styles */}
