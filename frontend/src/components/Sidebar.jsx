@@ -18,8 +18,9 @@ const Sidebar = ({
     availableLayers = [], proximityResults, showProximityPanel, setShowProximityPanel,
     layerGroups = [], metadata = {}, administrativeConfig = {}
 }) => {
-    const [expandedFeatureIdx, setExpandedFeatureIdx] = React.useState(-1);
+    const [expandedFeatures, setExpandedFeatures] = React.useState(new Set([0]));
     const [expandedFormations, setExpandedFormations] = React.useState({});
+    const [expandedGroups, setExpandedGroups] = React.useState({});
     const [compareIndices, setCompareIndices] = React.useState([]);
     const [viewMode, setViewMode] = React.useState('history'); // history, comparison, proximity
     const [showDownloadMenu, setShowDownloadMenu] = React.useState(false);
@@ -27,10 +28,30 @@ const Sidebar = ({
     // Drag and Drop state
     const [draggedLayer, setDraggedLayer] = React.useState(null);
 
-    // Sync proximity results with view mode
+    // Sync proximity results with view mode and auto-expand results
     React.useEffect(() => {
         if (proximityResults) setViewMode('proximity');
-    }, [proximityResults]);
+        if (results && results.length > 0) {
+            // Auto-expand all formations and groups when new results arrive
+            const initialFormations = {};
+            const initialGroups = {};
+            results.forEach(resItem => {
+                Object.entries(resItem.restricciones || {}).forEach(([layerId, items]) => {
+                    initialFormations[layerId] = true;
+                    if (metadata[layerId]?.results_group_by) {
+                        items.forEach(item => {
+                            const groupName = item[metadata[layerId].results_group_by] || "Otros / Sin Clasificar";
+                            initialGroups[`${layerId}-${groupName}`] = true;
+                        });
+                    }
+                });
+            });
+            setExpandedFormations(initialFormations);
+            setExpandedGroups(initialGroups);
+            // Expand all features by default
+            setExpandedFeatures(new Set(results.map((_, i) => i)));
+        }
+    }, [results, proximityResults, metadata]);
 
     const formatNumber = (num, decimals = 2) => {
         if (num === undefined || num === null) return "0";
@@ -133,7 +154,6 @@ const Sidebar = ({
         doc.save(`Ficha_${resItem.featureName}.pdf`);
     };
 
-    const [expandedGroups, setExpandedGroups] = React.useState({});
 
     const toggleGroup = (layerId, groupName) => {
         const key = `${layerId}-${groupName}`;
@@ -428,18 +448,23 @@ const Sidebar = ({
 
                 <div className="space-y-5">
                     {results.map((resItem, idx) => {
-                        const isExpanded = expandedFeatureIdx === idx;
+                        const isExpanded = expandedFeatures.has(idx);
                         const isComparing = compareIndices.includes(idx);
+                        
+                        const toggleExpand = () => {
+                            const newSet = new Set(expandedFeatures);
+                            if (newSet.has(idx)) newSet.delete(idx);
+                            else newSet.add(idx);
+                            setExpandedFeatures(newSet);
+                        };
                         const totalArea = resItem.area_total_ha || 0;
                         
-                        // Calculated based on group logic or sum (respecting overlaps)
                         const restArea = Object.entries(resItem.restricciones || {}).reduce((s, [lid, items]) => s + sumArea(items), 0);
-                        const cleanArea = Math.max(0, totalArea - restArea);
 
                         return (
                             <div key={idx} className={`border rounded-2xl overflow-hidden transition-all duration-300 ${isComparing ? 'border-blue-500 bg-blue-500/5 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'border-slate-800 bg-slate-800/20 hover:border-slate-700 shadow-xl'}`}>
                                 <div className="p-4 flex justify-between items-center">
-                                    <div onClick={() => setExpandedFeatureIdx(isExpanded ? -1 : idx)} className="flex-1 cursor-pointer">
+                                    <div onClick={toggleExpand} className="flex-1 cursor-pointer">
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className="px-1.5 py-0.5 rounded bg-slate-700 text-[8px] font-black text-white uppercase tracking-tighter">#{idx + 1}</span>
                                             <span className="block text-sm font-black text-white truncate max-w-[160px] tracking-tight">{resItem.featureName}</span>
@@ -452,7 +477,7 @@ const Sidebar = ({
                                     <div className="flex gap-2">
                                         <button onClick={() => toggleComparison(idx)} className={`w-8 h-8 rounded-lg transition-all flex items-center justify-center ${isComparing ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-500 hover:text-slate-300'}`}><Layers className="w-4 h-4" /></button>
                                         <button onClick={() => handleGeneratePDF(resItem)} className="w-8 h-8 rounded-lg bg-slate-800 text-slate-500 hover:text-slate-300 hover:bg-slate-700 transition-all flex items-center justify-center"><Download className="w-4 h-4" /></button>
-                                        <button onClick={() => setExpandedFeatureIdx(isExpanded ? -1 : idx)} className={`w-8 h-8 rounded-lg bg-slate-800 text-slate-500 transition-all flex items-center justify-center ${isExpanded ? 'rotate-180 bg-slate-700' : ''}`}><ChevronDown className="w-4 h-4" /></button>
+                                        <button onClick={toggleExpand} className={`w-8 h-8 rounded-lg bg-slate-800 text-slate-500 transition-all flex items-center justify-center ${isExpanded ? 'rotate-180 bg-slate-700' : ''}`}><ChevronDown className="w-4 h-4" /></button>
                                     </div>
                                 </div>
                                 {isExpanded && (
@@ -516,32 +541,45 @@ const Sidebar = ({
                                                 return (
                                                     <div key={group.id} className="bg-slate-950/40 p-5 rounded-2xl border border-slate-800/50 shadow-inner">
                                                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 block border-l-2 border-slate-700 pl-3 font-heading">{group.name}</span>
-                                                        <div className="flex gap-3 items-center">
-                                                            <div className="relative w-24 h-24 flex-shrink-0">
-                                                                <Doughnut data={chartData} options={{ 
-                                                                    cutout: '75%', 
-                                                                    plugins: { 
-                                                                        tooltip: { enabled: true }, 
-                                                                        legend: { display: false } 
-                                                                    } 
-                                                                }} />
+                                                        <div className="flex flex-col gap-5">
+                                                            <div className="flex justify-center">
+                                                                <div className="relative w-32 h-32 flex-shrink-0">
+                                                                    <Doughnut data={chartData} options={{ 
+                                                                        cutout: '75%', 
+                                                                        plugins: { 
+                                                                            tooltip: { enabled: true }, 
+                                                                            legend: { display: false } 
+                                                                        },
+                                                                        maintainAspectRatio: false
+                                                                    }} />
+                                                                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                                                        <span className="text-[10px] font-black text-white leading-none">{formatNumber((totalGroupRest/totalArea)*100, 0)}%</span>
+                                                                        <span className="text-[7px] text-slate-500 uppercase font-bold">Afectado</span>
+                                                                    </div>
+                                                                </div>
                                                             </div>
-                                                            <div className="flex flex-col flex-1 gap-1.5">
+                                                            <div className="grid grid-cols-1 gap-2 border-t border-slate-800/50 pt-4">
                                                                 {groupData.map((d, i) => (
-                                                                    <div key={i} className="flex items-center justify-between group/leg gap-2">
+                                                                    <div key={i} className="flex items-center justify-between group/leg gap-3">
                                                                         <div className="flex items-center gap-2 overflow-hidden flex-1">
-                                                                            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{backgroundColor: d.color}}></div>
-                                                                            <span className="text-[9px] font-black text-slate-400 truncate uppercase tracking-tighter group-hover/leg:text-slate-100 transition-colors font-heading" title={d.label}>{d.label}</span>
+                                                                            <div className="w-2 h-2 rounded-full flex-shrink-0 shadow-[0_0_5px_rgba(0,0,0,0.3)]" style={{backgroundColor: d.color}}></div>
+                                                                            <span className="text-[10px] font-bold text-slate-400 truncate uppercase tracking-tight group-hover/leg:text-slate-100 transition-colors font-heading" title={d.label}>{d.label}</span>
                                                                         </div>
-                                                                        <span className="text-[9px] font-bold text-slate-500 font-mono-tech whitespace-nowrap flex-shrink-0">{formatNumber((d.value/totalArea)*100, 1)}%</span>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-[9px] font-medium text-slate-500 font-mono-tech">{formatNumber(d.value)} ha</span>
+                                                                            <span className="text-[10px] font-black text-slate-300 font-mono-tech min-w-[35px] text-right">{formatNumber((d.value/totalArea)*100, 1)}%</span>
+                                                                        </div>
                                                                     </div>
                                                                 ))}
-                                                                <div className="flex items-center justify-between pt-1 mt-1 border-t border-slate-800 gap-2">
+                                                                <div className="flex items-center justify-between pt-2 mt-1 border-t border-dashed border-slate-800 gap-3">
                                                                     <div className="flex items-center gap-2 flex-1">
-                                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></div>
-                                                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter font-heading truncate">Sin Restr.</span>
+                                                                        <div className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0 shadow-[0_0_5px_rgba(16,185,129,0.3)]"></div>
+                                                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight font-heading truncate">Sin Restricciones</span>
                                                                     </div>
-                                                                    <span className="text-[9px] font-bold text-emerald-500 font-mono-tech whitespace-nowrap flex-shrink-0">{formatNumber((sinRest/totalArea)*100, 1)}%</span>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[9px] font-medium text-emerald-900/50 font-mono-tech">{formatNumber(sinRest)} ha</span>
+                                                                        <span className="text-[10px] font-black text-emerald-500 font-mono-tech min-w-[35px] text-right">{formatNumber((sinRest/totalArea)*100, 1)}%</span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -610,7 +648,7 @@ const Sidebar = ({
                                                                                             )}
                                                                                         </div>
                                                                                     );
-                                                                                });
+                                                                                 });
                                                                             }
                                                                             return items.map((item, i) => renderItemCard(item, i, subtitleField, titleField, totalArea));
                                                                         })()}
