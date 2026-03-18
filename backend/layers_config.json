@@ -73,55 +73,55 @@
   "layer_metadata": {
     "areas_protegidas": {
       "name": "Áreas Protegidas",
-      "color": "#60a5fa"
+      "color": "#3B82F6"
     },
     "sitios_prioritarios": {
       "name": "Sitios Prioritarios",
-      "color": "#c084fc"
+      "color": "#AD46FF"
     },
     "ecosistemas": {
       "name": "Ecosistemas",
-      "color": "#4ade80",
+      "color": "#FE9A00",
       "results_group_by": "formacion",
       "results_title_field": "piso"
     },
     "ecmpo": {
       "name": "ECMPO",
-      "color": "#fb7185"
+      "color": "#FF2056"
     },
     "concesiones_acuicultura": {
       "name": "Concesiones Acuicultura",
-      "color": "#22d3ee",
+      "color": "#00B8DB",
       "results_group_by": "titular",
       "results_subtitle": "estado"
     },
     "concesiones_mineras_const": {
       "name": "Catastro Minero Constituidas",
-      "color": "#fbbf24",
+      "color": "#E17100",
       "results_group_by": "concesiona",
       "results_subtitle": "sustancia"
     },
     "concesiones_mineras_tramite": {
       "name": "Catastro Minero en Trámite",
-      "color": "#f59e0b",
+      "color": "#7F22FE",
       "results_group_by": "concesiona",
       "results_subtitle": "etapa"
     },
     "comunas_simplified": {
       "name": "Límites Comunales",
-      "color": "#94a3b8"
+      "color": "#FF6900"
     },
     "provincias_simplified": {
       "name": "Límites Provinciales",
-      "color": "#64748b"
+      "color": "#00BBA7"
     },
     "regiones_simplified": {
       "name": "Límites Regionales",
-      "color": "#475569"
+      "color": "#615FFF"
     },
     "terrenos": {
       "name": "Terrenos Analizados",
-      "color": "#34d399"
+      "color": "#009966"
     }
   }
 }

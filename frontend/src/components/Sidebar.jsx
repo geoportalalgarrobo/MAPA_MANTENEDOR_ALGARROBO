@@ -598,13 +598,13 @@ const Sidebar = ({
 
                                                 return (
                                                     <div key={group.id} className="space-y-2">
-                                                        <h5 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] border-l-2 border-slate-700 pl-2 ml-1">{group.name}</h5>
+                                                        <h5 className="text-[9px] font-medium text-slate-500 tracking-[0.2em] border-l-2 border-slate-700 pl-2 ml-1">{group.name}</h5>
                                                         {groupMatches.map(([lId, items]) => (
                                                             <div key={lId} className="border border-slate-800 rounded-xl overflow-hidden bg-slate-900/60 shadow-inner">
                                                                 <div onClick={() => toggleFormation(lId)} className="p-3 flex justify-between items-center gap-2 cursor-pointer hover:bg-slate-800/30 transition-colors">
                                                                     <div className="flex items-center gap-2 flex-1 min-w-0">
                                                                         <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-[0_0_8px_rgba(255,255,255,0.1)]" style={{backgroundColor: getLayerColor(lId)}}></div>
-                                                                        <span className="text-[10px] font-black text-slate-200 uppercase tracking-tight leading-tight flex-1">{getLayerDisplayName(lId)}</span>
+                                                                        <span className="text-[10px] font-medium text-slate-200 tracking-tight leading-tight flex-1">{getLayerDisplayName(lId)}</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-2 flex-shrink-0">
                                                                         <span className="text-[10px] font-bold text-red-400 whitespace-nowrap block">{formatNumber(sumArea(items))} ha</span>
