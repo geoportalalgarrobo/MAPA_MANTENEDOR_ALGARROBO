@@ -53,11 +53,17 @@
       "layers": [
         "areas_protegidas",
         "sitios_prioritarios",
-        "ecosistemas",
         "ecmpo",
         "concesiones_acuicultura",
         "concesiones_mineras_const",
         "concesiones_mineras_tramite"
+      ]
+    },
+    {
+      "id": "ecosistema",
+      "name": "Ecosistema",
+      "layers": [
+        "ecosistemas"
       ]
     }
   ],
