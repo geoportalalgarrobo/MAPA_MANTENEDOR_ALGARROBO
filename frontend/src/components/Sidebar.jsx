@@ -199,7 +199,7 @@ const Sidebar = ({
             <div className="grid grid-cols-[1fr_auto] gap-4">
                 <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                        <span className="block font-black text-slate-100 uppercase tracking-tight text-[11px] leading-tight group-hover/item:text-blue-400 transition-colors italic font-heading">
+                        <span className="block font-medium text-slate-100 tracking-tight text-[11px] leading-tight group-hover/item:text-blue-400 transition-colors font-heading">
                             {titleField ? item[titleField] : (item.nombre || item.Name || item.NOMBRE || item.nombre_sp || `Entidad ${i + 1}`)}
                         </span>
                         {subtitleField && item[subtitleField] && (
@@ -208,7 +208,7 @@ const Sidebar = ({
                             </span>
                         )}
                     </div>
-                    <span className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter font-mono-tech">ID: {item.FID || item.id || 'N/A'}</span>
+                    <span className="text-[9px] text-slate-600 font-medium tracking-tighter font-mono-tech">ID: {item.FID || item.id || 'N/A'}</span>
                     <div className="mt-3 grid grid-cols-1 gap-1.5 border-t border-slate-800/30 pt-3 opacity-80 group-hover/item:opacity-100 transition-opacity">
                         {Object.entries(item).map(([key, value]) => {
                             if (['geometry', 'area_interseccion_ha', 'nombre', 'Name', 'NOMBRE', 'FID', 'id'].some(ex => key.toLowerCase().includes(ex.toLowerCase()))) return null;
@@ -216,7 +216,7 @@ const Sidebar = ({
                             if (value === null || value === "" || value === undefined || value === "null") return null;
                             return (
                                 <div key={key} className="flex flex-row gap-2 border-l-2 border-slate-700/30 pl-3">
-                                    <span className="text-slate-600 font-black uppercase text-[8px] tracking-widest min-w-[70px]">{key.replace(/_/g, ' ')}:</span>
+                                    <span className="text-slate-600 font-medium text-[8px] tracking-widest min-w-[70px]">{key.replace(/_/g, ' ')}:</span>
                                     <span className="text-slate-400 break-words leading-tight flex-1">{String(value)}</span>
                                 </div>
                             );
