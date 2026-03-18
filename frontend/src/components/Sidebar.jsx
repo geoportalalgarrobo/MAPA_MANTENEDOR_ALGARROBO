@@ -106,7 +106,13 @@ const Sidebar = ({
         
         doc.setFontSize(10);
         doc.text(`Superficie Total: ${formatNumber(resItem.area_total_ha)} ha`, 15, 80);
-        doc.text(`Comuna: ${resItem.dpa?.Comuna?.join(', ') || 'N/A'}`, 15, 86);
+        // Dynamic admin location lines from config
+        let locY = 86;
+        (administrativeConfig?.levels || []).forEach(level => {
+            const val = resItem.dpa?.[level.target_key]?.join(', ') || 'N/A';
+            doc.text(`${level.label}: ${val}`, 15, locY);
+            locY += 6;
+        });
         
         doc.setFontSize(12); doc.text("AFECTACIONES", 15, 110); doc.line(15, 112, 195, 112);
         let y = 120;
@@ -173,16 +179,16 @@ const Sidebar = ({
             <div className="grid grid-cols-[1fr_auto] gap-4">
                 <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                        <span className="block font-black text-slate-100 uppercase tracking-tight text-[11px] leading-tight group-hover/item:text-blue-400 transition-colors italic">
+                        <span className="block font-black text-slate-100 uppercase tracking-tight text-[11px] leading-tight group-hover/item:text-blue-400 transition-colors italic font-heading">
                             {titleField ? item[titleField] : (item.nombre || item.Name || item.NOMBRE || item.nombre_sp || `Entidad ${i + 1}`)}
                         </span>
                         {subtitleField && item[subtitleField] && (
-                            <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700/50 font-bold uppercase">
+                            <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700/50 font-bold uppercase font-mono-tech">
                                 {String(item[subtitleField])}
                             </span>
                         )}
                     </div>
-                    <span className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter">ID: {item.FID || item.id || 'N/A'}</span>
+                    <span className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter font-mono-tech">ID: {item.FID || item.id || 'N/A'}</span>
                     <div className="mt-3 grid grid-cols-1 gap-1.5 border-t border-slate-800/30 pt-3 opacity-80 group-hover/item:opacity-100 transition-opacity">
                         {Object.entries(item).map(([key, value]) => {
                             if (['geometry', 'area_interseccion_ha', 'nombre', 'Name', 'NOMBRE', 'FID', 'id'].some(ex => key.toLowerCase().includes(ex.toLowerCase()))) return null;
@@ -197,7 +203,7 @@ const Sidebar = ({
                         })}
                     </div>
                 </div>
-                <div className="flex flex-col items-end justify-center">
+                <div className="flex flex-col items-end justify-center font-mono-tech">
                     <span className="text-red-400 font-black text-xs tracking-tighter shadow-sm">{formatNumber(item.area_interseccion_ha)} ha</span>
                     <span className="text-[9px] text-slate-600 font-bold italic">{formatNumber(totalArea > 0 ? (item.area_interseccion_ha / totalArea) * 100 : 0, 1)}%</span>
                 </div>
@@ -409,9 +415,9 @@ const Sidebar = ({
                     <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full"></div>
                     <img src={LogoImage} alt="Logo" className="h-20 w-auto relative drop-shadow-2xl" />
                 </div>
-                <h1 className="text-3xl font-black text-white tracking-widest uppercase italic">Geoportal</h1>
-                <div className="h-1 w-12 bg-blue-500 mt-2 mb-3 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
-                <p className="text-slate-500 text-[10px] uppercase font-bold tracking-widest opacity-80">Análisis Territorial Inteligente</p>
+                <h1 className="text-3xl font-black text-white tracking-[0.2em] font-heading uppercase italic">Geoportal</h1>
+                <div className="h-1 w-12 bg-blue-500 mt-2 mb-3 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
+                <p className="text-slate-500 text-[9px] uppercase font-bold tracking-[0.4em] opacity-80 font-heading">Análisis Territorial Inteligente</p>
             </header>
             {renderControls()}
         </div>
@@ -425,10 +431,10 @@ const Sidebar = ({
             <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
                 <header className="mb-8 flex justify-between items-center border-b border-slate-800/50 pb-6">
                     <div>
-                        <h2 className="text-2xl font-black text-white italic tracking-tight uppercase">Resultados</h2>
+                        <h2 className="text-2xl font-black text-white italic tracking-tight uppercase font-heading">Resultados</h2>
                         <div className="flex items-center gap-2 mt-1">
                             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{results.length} Sitios Analizados</span>
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.15em] font-mono-tech">{results.length} Sitios Analizados</span>
                         </div>
                     </div>
                     <div className="flex gap-2">
@@ -448,11 +454,6 @@ const Sidebar = ({
                         // Calculated based on group logic or sum (respecting overlaps)
                         const restArea = Object.entries(resItem.restricciones || {}).reduce((s, [lid, items]) => s + sumArea(items), 0);
                         const cleanArea = Math.max(0, totalArea - restArea);
-                        
-                        const chartData = {
-                            labels: ["Afectación", "Limpio"],
-                            datasets: [{ data: [restArea, cleanArea], backgroundColor: ['#ef4444', '#10b981'], borderWidth: 0, hoverOffset: 4 }]
-                        };
 
                         return (
                             <div key={idx} className={`border rounded-2xl overflow-hidden transition-all duration-300 ${isComparing ? 'border-blue-500 bg-blue-500/5 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'border-slate-800 bg-slate-800/20 hover:border-slate-700 shadow-xl'}`}>
@@ -478,10 +479,10 @@ const Sidebar = ({
                                         
                                         {/* 1. AREA CARD */}
                                         <div className="bg-slate-950/40 p-5 rounded-2xl border border-slate-800/50 shadow-inner">
-                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Área Calculada</span>
-                                            <div className="flex items-baseline gap-2">
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2 block font-heading">Área Calculada</span>
+                                            <div className="flex items-baseline gap-2 font-mono-tech">
                                                 <span className="text-3xl font-black text-white tracking-tighter italic leading-none">{formatNumber(totalArea)}</span>
-                                                <span className="text-xs text-slate-500 italic font-medium uppercase font-sans">ha</span>
+                                                <span className="text-xs text-slate-500 italic font-medium uppercase">ha</span>
                                             </div>
                                         </div>
 
@@ -533,7 +534,7 @@ const Sidebar = ({
 
                                                 return (
                                                     <div key={group.id} className="bg-slate-950/40 p-5 rounded-2xl border border-slate-800/50 shadow-inner">
-                                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 block border-l-2 border-slate-700 pl-3">{group.name}</span>
+                                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 block border-l-2 border-slate-700 pl-3 font-heading">{group.name}</span>
                                                         <div className="flex gap-6 items-center">
                                                             <div className="relative w-28 h-28 flex-shrink-0">
                                                                 <Doughnut data={chartData} options={{ 
@@ -549,17 +550,17 @@ const Sidebar = ({
                                                                     <div key={i} className="flex items-center justify-between group/leg">
                                                                         <div className="flex items-center gap-2 overflow-hidden">
                                                                             <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{backgroundColor: d.color}}></div>
-                                                                            <span className="text-[9px] font-black text-slate-400 truncate uppercase tracking-tighter group-hover/leg:text-slate-100 transition-colors">{d.label}</span>
+                                                                            <span className="text-[9px] font-black text-slate-400 truncate uppercase tracking-tighter group-hover/leg:text-slate-100 transition-colors font-heading">{d.label}</span>
                                                                         </div>
-                                                                        <span className="text-[9px] font-bold text-slate-500">{formatNumber((d.value/totalArea)*100, 1)}%</span>
+                                                                        <span className="text-[9px] font-bold text-slate-500 font-mono-tech">{formatNumber((d.value/totalArea)*100, 1)}%</span>
                                                                     </div>
                                                                 ))}
                                                                 <div className="flex items-center justify-between pt-1 mt-1 border-t border-slate-800">
                                                                     <div className="flex items-center gap-2">
                                                                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                                                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Sin Restr.</span>
+                                                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter font-heading">Sin Restr.</span>
                                                                     </div>
-                                                                    <span className="text-[9px] font-bold text-emerald-500">{formatNumber((sinRest/totalArea)*100, 1)}%</span>
+                                                                    <span className="text-[9px] font-bold text-emerald-500 font-mono-tech">{formatNumber((sinRest/totalArea)*100, 1)}%</span>
                                                                 </div>
                                                             </div>
                                                         </div>

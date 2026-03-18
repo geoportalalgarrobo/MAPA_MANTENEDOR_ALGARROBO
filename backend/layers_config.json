@@ -49,18 +49,12 @@
     },
     {
       "id": "restricciones_a",
-      "name": "Restricciones Territoriales (A)",
+      "name": "Restricciones Territoriales",
       "layers": [
         "areas_protegidas",
         "sitios_prioritarios",
         "ecosistemas",
-        "ecmpo"
-      ]
-    },
-    {
-      "id": "restricciones_b",
-      "name": "Concesiones y Otros (B)",
-      "layers": [
+        "ecmpo",
         "concesiones_acuicultura",
         "concesiones_mineras_const",
         "concesiones_mineras_tramite"

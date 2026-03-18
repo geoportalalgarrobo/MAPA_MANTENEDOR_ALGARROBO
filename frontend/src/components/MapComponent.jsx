@@ -21,6 +21,12 @@ const MapComponent = forwardRef(({
     const activeDrawModeRef = useRef(activeDrawMode);
     useEffect(() => { activeDrawModeRef.current = activeDrawMode; }, [activeDrawMode]);
 
+    // Keep fresh refs for click/mousemove handlers to avoid stale closures
+    const availableLayersRef = useRef(availableLayers);
+    useEffect(() => { availableLayersRef.current = availableLayers; }, [availableLayers]);
+    const activeLayersRef = useRef(activeLayers);
+    useEffect(() => { activeLayersRef.current = activeLayers; }, [activeLayers]);
+
     useImperativeHandle(ref, () => ({
         clearDrawings() { 
             if (draw.current) draw.current.deleteAll(); 
@@ -143,8 +149,6 @@ const MapComponent = forwardRef(({
         });
 
         map.current.on('click', async (e) => {
-            if (availableLayers.length === 0) return;
-
             if (activeDrawModeRef.current === 'proximity_point') {
                 const { lat, lng } = e.lngLat;
                 onProximityPoint(lat, lng);
@@ -155,7 +159,9 @@ const MapComponent = forwardRef(({
                 return;
             }
 
-            const queryableLayers = [...availableLayers].filter(id => activeLayers[id]).map(id => `${id}-fill`);
+            const layers = availableLayersRef.current;
+            if (layers.length === 0) return;
+            const queryableLayers = layers.filter(id => activeLayersRef.current[id]).map(id => `${id}-fill`);
             if (queryableLayers.length === 0) return;
             const features = map.current.queryRenderedFeatures(e.point, { layers: queryableLayers });
 
@@ -183,7 +189,6 @@ const MapComponent = forwardRef(({
         });
 
         map.current.on('mousemove', (e) => {
-            if (!mapLoaded) return;
             if (activeDrawModeRef.current === 'proximity_point') {
                 map.current.getCanvas().style.cursor = 'crosshair';
             } else {
@@ -245,15 +250,7 @@ const MapComponent = forwardRef(({
 
     // 4. SYNC Z-INDEX
     useEffect(() => {
-        if (!map.current || !mapLoaded || !results) return;
-        // The layerOrder passed from App is what we use
-        const currentOrder = results.layerOrder || []; 
-        // Wait, layerOrder prop is available directly
-    }, []);
-
-    // Re-doing the Z-index effect properly using the prop 'layerOrder'
-    useEffect(() => {
-        if (!map.current || !mapLoaded || !layerOrder) return;
+        if (!map.current || !mapLoaded || !layerOrder || layerOrder.length === 0) return;
         const reversed = [...layerOrder].reverse();
         reversed.forEach(id => {
             if (map.current.getLayer(`${id}-fill`)) {

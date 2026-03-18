@@ -59,9 +59,9 @@ def safe_read_fgb(path: str, bbox=None):
     """Safely read a FlatGeobuf file with optional bbox filtering."""
     try:
         if not os.path.exists(path):
-            print(f"DEBUG: File NOT FOUND at {path}")
+            logger.debug(f"FGB not found: {path}")
             return None
-        print(f"DEBUG: Reading FGB {path} (bbox={bbox})")
+        logger.debug(f"Reading FGB: {os.path.basename(path)} bbox={bbox}")
         return gpd.read_file(path, bbox=bbox)
     except Exception as e:
         logger.error(f"Error reading FGB {path}: {e}")
@@ -190,8 +190,11 @@ async def get_proximity(lat: float, lon: float):
     p_utm = p_gdf.geometry.iloc[0]
     
     fgb_files = glob.glob(os.path.join(DATA_TILES, "*.fgb"))
-    exclude = ["regiones_simplified", "provincias_simplified", "comunas_simplified"]
-    layers_to_check = [os.path.splitext(os.path.basename(f))[0] for f in fgb_files if os.path.splitext(os.path.basename(f))[0] not in exclude]
+    config = load_layers_config()
+    exclude = config.get("administrative_layers", ["regiones_simplified", "provincias_simplified", "comunas_simplified"])
+    layers_to_check = [os.path.splitext(os.path.basename(f))[0] for f in fgb_files 
+                       if os.path.splitext(os.path.basename(f))[0] not in exclude
+                       and not f.endswith('.lowres.fgb')]
 
     def calculate_proximity():
         results = []
@@ -248,7 +251,6 @@ async def reporte_predio(payload: GeoJSONPayload):
     try:
         geom = shape(payload.geometry)
         if not geom.is_valid: geom = geom.buffer(0)
-        wkt_geom = geom.wkt
         
         config = load_layers_config()
         admin_layers = config.get("administrative_layers", ["regiones_simplified", "provincias_simplified", "comunas_simplified"])
@@ -275,7 +277,8 @@ async def reporte_predio(payload: GeoJSONPayload):
                                 inter_geom = inter.intersection(geom)
                                 area_inter = inter_geom.to_crs(epsg=32719).area / 10000.0
                                 inter['area_interseccion_ha'] = area_inter
-                            except:
+                            except Exception as calc_err:
+                                logger.warning(f"Area calc failed for {layer}: {calc_err}")
                                 inter['area_interseccion_ha'] = 0.0
                             
                             inter = inter.drop(columns=['geometry'], errors='ignore')

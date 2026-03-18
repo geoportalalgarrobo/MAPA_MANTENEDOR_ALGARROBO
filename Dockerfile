@@ -12,7 +12,7 @@ FROM python:3.11-slim-bookworm
 # Actualizar e instalar dependencias mínimas si es necesario
 RUN apt-get update && apt-get install -y \
     binutils \
-    && rm -rf /var/lib/apt/cache/*
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
