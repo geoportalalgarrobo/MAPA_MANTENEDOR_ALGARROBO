@@ -516,8 +516,8 @@ const Sidebar = ({
                                                 return (
                                                     <div key={group.id} className="bg-slate-950/40 p-5 rounded-2xl border border-slate-800/50 shadow-inner">
                                                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 block border-l-2 border-slate-700 pl-3 font-heading">{group.name}</span>
-                                                        <div className="flex gap-6 items-center">
-                                                            <div className="relative w-28 h-28 flex-shrink-0">
+                                                        <div className="flex gap-3 items-center">
+                                                            <div className="relative w-24 h-24 flex-shrink-0">
                                                                 <Doughnut data={chartData} options={{ 
                                                                     cutout: '75%', 
                                                                     plugins: { 
@@ -528,20 +528,20 @@ const Sidebar = ({
                                                             </div>
                                                             <div className="flex flex-col flex-1 gap-1.5">
                                                                 {groupData.map((d, i) => (
-                                                                    <div key={i} className="flex items-center justify-between group/leg">
-                                                                        <div className="flex items-center gap-2 overflow-hidden">
+                                                                    <div key={i} className="flex items-center justify-between group/leg gap-2">
+                                                                        <div className="flex items-center gap-2 overflow-hidden flex-1">
                                                                             <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{backgroundColor: d.color}}></div>
-                                                                            <span className="text-[9px] font-black text-slate-400 truncate uppercase tracking-tighter group-hover/leg:text-slate-100 transition-colors font-heading">{d.label}</span>
+                                                                            <span className="text-[9px] font-black text-slate-400 truncate uppercase tracking-tighter group-hover/leg:text-slate-100 transition-colors font-heading" title={d.label}>{d.label}</span>
                                                                         </div>
-                                                                        <span className="text-[9px] font-bold text-slate-500 font-mono-tech">{formatNumber((d.value/totalArea)*100, 1)}%</span>
+                                                                        <span className="text-[9px] font-bold text-slate-500 font-mono-tech whitespace-nowrap flex-shrink-0">{formatNumber((d.value/totalArea)*100, 1)}%</span>
                                                                     </div>
                                                                 ))}
-                                                                <div className="flex items-center justify-between pt-1 mt-1 border-t border-slate-800">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                                                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter font-heading">Sin Restr.</span>
+                                                                <div className="flex items-center justify-between pt-1 mt-1 border-t border-slate-800 gap-2">
+                                                                    <div className="flex items-center gap-2 flex-1">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></div>
+                                                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter font-heading truncate">Sin Restr.</span>
                                                                     </div>
-                                                                    <span className="text-[9px] font-bold text-emerald-500 font-mono-tech">{formatNumber((sinRest/totalArea)*100, 1)}%</span>
+                                                                    <span className="text-[9px] font-bold text-emerald-500 font-mono-tech whitespace-nowrap flex-shrink-0">{formatNumber((sinRest/totalArea)*100, 1)}%</span>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -563,14 +563,14 @@ const Sidebar = ({
                                                         <h5 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] border-l-2 border-slate-700 pl-2 ml-1">{group.name}</h5>
                                                         {groupMatches.map(([lId, items]) => (
                                                             <div key={lId} className="border border-slate-800 rounded-xl overflow-hidden bg-slate-900/60 shadow-inner">
-                                                                <div onClick={() => toggleFormation(lId)} className="p-3 flex justify-between items-center cursor-pointer hover:bg-slate-800/30 transition-colors">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <div className="w-2.5 h-2.5 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.1)]" style={{backgroundColor: getLayerColor(lId)}}></div>
-                                                                        <span className="text-[10px] font-black text-slate-200 uppercase tracking-tight">{getLayerDisplayName(lId)}</span>
+                                                                <div onClick={() => toggleFormation(lId)} className="p-3 flex justify-between items-center gap-2 cursor-pointer hover:bg-slate-800/30 transition-colors">
+                                                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-[0_0_8px_rgba(255,255,255,0.1)]" style={{backgroundColor: getLayerColor(lId)}}></div>
+                                                                        <span className="text-[10px] font-black text-slate-200 uppercase tracking-tight leading-tight flex-1">{getLayerDisplayName(lId)}</span>
                                                                     </div>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-[10px] font-bold text-red-400">{formatNumber(sumArea(items))} ha</span>
-                                                                        <ChevronDown className={`w-3 h-3 text-slate-600 transition-all ${expandedFormations[lId] ? 'rotate-180 text-white' : ''}`} />
+                                                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                                                        <span className="text-[10px] font-bold text-red-400 whitespace-nowrap block">{formatNumber(sumArea(items))} ha</span>
+                                                                        <ChevronDown className={`w-3 h-3 flex-shrink-0 text-slate-600 transition-all ${expandedFormations[lId] ? 'rotate-180 text-white' : ''}`} />
                                                                     </div>
                                                                 </div>
                                                                 {expandedFormations[lId] && (

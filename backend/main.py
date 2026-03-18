@@ -191,7 +191,13 @@ async def get_proximity(lat: float, lon: float):
     
     fgb_files = glob.glob(os.path.join(DATA_TILES, "*.fgb"))
     config = load_layers_config()
-    exclude = config.get("administrative_layers", ["regiones_simplified", "provincias_simplified", "comunas_simplified"])
+    
+    # Extract administrative layer IDs from administrative_config
+    admin_cfg = config.get("administrative_config", {}).get("levels", [])
+    exclude = [level["id"] for level in admin_cfg]
+    if not exclude:
+        exclude = config.get("administrative_layers", ["regiones_simplified", "provincias_simplified", "comunas_simplified"])
+        
     layers_to_check = [os.path.splitext(os.path.basename(f))[0] for f in fgb_files 
                        if os.path.splitext(os.path.basename(f))[0] not in exclude
                        and not f.endswith('.lowres.fgb')]
@@ -254,7 +260,12 @@ async def reporte_predio(payload: GeoJSONPayload):
         if not geom.is_valid: geom = geom.buffer(0)
         
         config = load_layers_config()
-        admin_layers = config.get("administrative_layers", ["regiones_simplified", "provincias_simplified", "comunas_simplified"])
+        
+        # Extract administrative layer IDs from administrative_config
+        admin_cfg = config.get("administrative_config", {}).get("levels", [])
+        admin_layers = [level["id"] for level in admin_cfg]
+        if not admin_layers:
+            admin_layers = config.get("administrative_layers", ["regiones_simplified", "provincias_simplified", "comunas_simplified"])
         
         fgb_files = glob.glob(os.path.join(DATA_TILES, "*.fgb"))
         # Exclude administrative layers from the "restrictions" list
@@ -302,11 +313,20 @@ async def reporte_predio(payload: GeoJSONPayload):
                     hits = dgdf[dgdf.intersects(geom)]
                     # Common name field variants
                     found = False
-                    for field in ['region', 'provincia', 'comuna', 'REGION', 'PROVINCIA', 'COMUNA', 'nombre', 'Name', 'NAME']:
+                    # Use targeted fields based on target_key to prevent e.g. "region" matching in "comunas" level
+                    tgt = level['target_key'].lower()
+                    expected = [tgt, tgt.upper(), 'nombre', 'Name', 'NAME']
+                    for field in expected:
                         if field in hits.columns:
                             dpa[level['target_key']] = list(set(hits[field].astype(str).tolist()))
                             found = True
                             break
+                    if not found:
+                        for field in ['region', 'provincia', 'comuna', 'REGION', 'PROVINCIA', 'COMUNA']:
+                            if field in hits.columns:
+                                dpa[level['target_key']] = list(set(hits[field].astype(str).tolist()))
+                                found = True
+                                break
                     if not found: dpa[level['target_key']] = []
                 else:
                     dpa[level['target_key']] = []
