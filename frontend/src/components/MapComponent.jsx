@@ -33,11 +33,22 @@ const MapComponent = forwardRef(({
             if (proximityMarker.current) { proximityMarker.current.remove(); proximityMarker.current = null; }
         },
         startDrawing(mode = 'draw_polygon') {
+            console.log(`[MapComponent] startDrawing called with mode: ${mode}`);
             if (draw.current) {
-                if (proximityMarker.current) { proximityMarker.current.remove(); proximityMarker.current = null; }
-                if (mode === 'proximity_point' || mode === 'simple_select') {
+                if (proximityMarker.current) { 
+                    console.log("[MapComponent] Removing existing proximity marker");
+                    proximityMarker.current.remove(); 
+                    proximityMarker.current = null; 
+                }
+                
+                if (mode === 'proximity_point') {
+                    console.log("[MapComponent] Using draw_point mode for proximity");
+                    draw.current.changeMode('draw_point');
+                } else if (mode === 'simple_select') {
+                    console.log("[MapComponent] Setting draw mode to simple_select");
                     draw.current.changeMode('simple_select');
                 } else {
+                    console.log(`[MapComponent] Setting draw mode to: ${mode}`);
                     draw.current.changeMode(mode);
                 }
                 map.current.getCanvas().style.cursor = 'crosshair';
@@ -58,14 +69,33 @@ const MapComponent = forwardRef(({
     }));
 
     const handleDrawEvent = useCallback((e) => {
+        console.log("[MapComponent] handleDrawEvent triggered. Mode:", activeDrawModeRef.current);
         const data = draw.current.getAll();
         if (data.features.length > 0) {
             const feature = (e.features && e.features.length > 0) ? e.features[0] : data.features[data.features.length - 1];
-            onAnalyzePolygon(feature);
+            
+            console.log("[MapComponent] Feature type:", feature.geometry.type);
+            
+            if (feature.geometry.type === 'Point' && activeDrawModeRef.current === 'proximity_point') {
+                const [lng, lat] = feature.geometry.coordinates;
+                console.log("[MapComponent] Point detected for proximity. Coords:", lat, lng);
+                onProximityPoint(lat, lng);
+                
+                // Cleanup: remove the point feature since we manage it with a custom marker or just results
+                draw.current.delete(feature.id);
+                
+                // Add a custom marker to highlight the point
+                if (proximityMarker.current) proximityMarker.current.remove();
+                proximityMarker.current = new maplibregl.Marker({ color: '#f97316' })
+                    .setLngLat([lng, lat])
+                    .addTo(map.current);
+            } else {
+                onAnalyzePolygon(feature);
+            }
         } else {
             onAnalyzePolygon(null);
         }
-    }, [onAnalyzePolygon]);
+    }, [onAnalyzePolygon, onProximityPoint]);
 
     // 1. INITIALIZE MAP
     useEffect(() => {
@@ -149,13 +179,23 @@ const MapComponent = forwardRef(({
         });
 
         map.current.on('click', async (e) => {
+            console.log(`[MapComponent] Map clicked at: ${e.lngLat.lat}, ${e.lngLat.lng}. Active mode: ${activeDrawModeRef.current}`);
+            
             if (activeDrawModeRef.current === 'proximity_point') {
                 const { lat, lng } = e.lngLat;
+                console.log("[MapComponent] Triggering onProximityPoint with:", lat, lng);
                 onProximityPoint(lat, lng);
-                if (proximityMarker.current) proximityMarker.current.remove();
+                
+                if (proximityMarker.current) {
+                    console.log("[MapComponent] Removing old marker");
+                    proximityMarker.current.remove();
+                }
+                
                 proximityMarker.current = new maplibregl.Marker({ color: '#f97316' })
                     .setLngLat([lng, lat])
                     .addTo(map.current);
+                
+                console.log("[MapComponent] New marker added at:", lng, lat);
                 return;
             }
 

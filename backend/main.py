@@ -243,6 +243,7 @@ async def get_proximity(lat: float, lon: float):
         return sorted(results, key=lambda x: x['distance_m'])
 
     loop = asyncio.get_event_loop()
+    logger.info(f"Processing proximity request for coords: {lat}, {lon}")
     return await loop.run_in_executor(executor, calculate_proximity)
 
 @app.post("/api/reporte-predio")

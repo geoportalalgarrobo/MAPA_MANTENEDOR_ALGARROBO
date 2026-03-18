@@ -79,20 +79,31 @@ function App() {
   };
 
   const handleProximityPoint = async (lat, lon) => {
+    console.log(`[App] Proximity analysis request received for: ${lat}, ${lon}`);
     setIsAnalyzing(true);
     setError(null);
     try {
-      const response = await fetch(`/api/proximidad/${lat}/${lon}`);
-      if (!response.ok) throw new Error("Error obteniendo datos de proximidad");
+      const url = `/api/proximidad/${lat}/${lon}`;
+      console.log(`[App] Fetching proximity from: ${url}`);
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        console.error(`[App] Proximity API error: Status ${response.status}`);
+        throw new Error("Error obteniendo datos de proximidad");
+      }
+      
       const data = await response.json();
+      console.log("[App] Proximity results received:", data);
+      
       setProximityResults(data);
       setShowProximityPanel(true);
     } catch (err) {
-      console.error(err);
+      console.error("[App] Catch - Proximity analysis failed:", err);
       setError("No se pudo calcular la proximidad.");
     } finally {
       setIsAnalyzing(false);
       setActiveDrawMode(null);
+      console.log("[App] Finished proximity request");
     }
   };
 
