@@ -221,6 +221,9 @@ const MapComponent = forwardRef(({
                 Object.entries(props).forEach(([k, v]) => {
                     if (k.startsWith('_') || ['id', 'FID', 'objectid', 'shape_length', 'shape_area'].some(ex => k.toLowerCase().includes(ex.toLowerCase()))) return;
                     
+                    const visibleCols = metadata[layerId]?.visible_columns;
+                    if (visibleCols && !visibleCols.some(col => col.toLowerCase() === k.toLowerCase())) return;
+
                     let displayValue = String(v);
                     if (displayValue.startsWith('http') || displayValue.includes('www.')) {
                         displayValue = `<a href="${displayValue}" target="_blank" class="text-blue-600 hover:underline font-bold">Ver Enlace</a>`;

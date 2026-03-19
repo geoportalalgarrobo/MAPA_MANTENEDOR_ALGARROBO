@@ -16,7 +16,12 @@
         "label": "Comuna",
         "target_key": "Comuna"
       }
-    ]
+    ],
+    "focus": {
+      "id_capa": "comunas_simplified",
+      "target_key": "cod_comuna",
+      "target_values": 5602
+    }
   },
   "administrative_layers": [
     "regiones_simplified",
@@ -73,11 +78,18 @@
   "layer_metadata": {
     "areas_protegidas": {
       "name": "Áreas Protegidas",
-      "color": "#3B82F6"
+      "color": "#3B82F6",
+      "visible_columns": [
+        "designacio"
+      ]
     },
     "sitios_prioritarios": {
       "name": "Sitios Prioritarios",
-      "color": "#AD46FF"
+      "color": "#AD46FF",
+      "visible_columns": [
+        "Nombre_SP",
+        "Tipo_SP"
+      ]
     },
     "ecosistemas": {
       "name": "Ecosistemas",
@@ -87,13 +99,21 @@
     },
     "ecmpo": {
       "name": "ECMPO",
-      "color": "#FF2056"
+      "color": "#FF2056",
+      "visible_columns": [
+        "REP_SUBPES",
+        "REP_SUBP_1"
+      ]
     },
     "concesiones_acuicultura": {
       "name": "Concesiones Acuicultura",
       "color": "#00B8DB",
       "results_group_by": "titular",
-      "results_subtitle": "estado"
+      "results_subtitle": "estado",
+      "visible_columns": [
+        "REP_SUBPES",
+        "REP_SUBP_3"
+      ]
     },
     "concesiones_mineras_const": {
       "name": "Catastro Minero Constituidas",

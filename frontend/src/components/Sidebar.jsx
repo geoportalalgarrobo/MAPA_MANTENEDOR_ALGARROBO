@@ -193,43 +193,51 @@ const Sidebar = ({
         setShowDownloadMenu(false);
     };
 
-    const renderItemCard = (item, i, subtitleField, titleField, totalArea) => (
-        <div key={i} className="text-[11px] text-slate-400 bg-slate-800/20 p-4 rounded-xl border border-slate-700/30 relative group/item">
-            <div className="absolute top-0 right-10 bottom-0 w-px bg-slate-800/30"></div>
-            <div className="grid grid-cols-[1fr_auto] gap-4">
-                <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <span className="block font-medium text-slate-100 tracking-tight text-[11px] leading-tight group-hover/item:text-blue-400 transition-colors font-heading">
-                            {titleField ? item[titleField] : (item.nombre || item.Name || item.NOMBRE || item.nombre_sp || `Entidad ${i + 1}`)}
-                        </span>
-                        {subtitleField && item[subtitleField] && (
-                            <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700/50 font-medium font-mono-tech">
-                                {String(item[subtitleField])}
+    const renderItemCard = (item, i, subtitleField, titleField, totalArea, layerId) => {
+        const visibleCols = metadata[layerId]?.visible_columns;
+        
+        return (
+            <div key={i} className="text-[11px] text-slate-400 bg-slate-800/20 p-4 rounded-xl border border-slate-700/30 relative group/item">
+                <div className="absolute top-0 right-10 bottom-0 w-px bg-slate-800/30"></div>
+                <div className="grid grid-cols-[1fr_auto] gap-4">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <span className="block font-medium text-slate-100 tracking-tight text-[11px] leading-tight group-hover/item:text-blue-400 transition-colors font-heading">
+                                {titleField ? item[titleField] : (item.nombre || item.Name || item.NOMBRE || item.nombre_sp || `Entidad ${i + 1}`)}
                             </span>
-                        )}
+                            {subtitleField && item[subtitleField] && (
+                                <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700/50 font-medium font-mono-tech">
+                                    {String(item[subtitleField])}
+                                </span>
+                            )}
+                        </div>
+                        <span className="text-[9px] text-slate-600 font-medium tracking-tighter font-mono-tech">ID: {item.FID || item.id || 'N/A'}</span>
+                        <div className="mt-3 grid grid-cols-1 gap-1.5 border-t border-slate-800/30 pt-3 opacity-80 group-hover/item:opacity-100 transition-opacity">
+                            {Object.entries(item).map(([key, value]) => {
+                                if (['geometry', 'area_interseccion_ha', 'nombre', 'Name', 'NOMBRE', 'FID', 'id', 'objectid', 'shape_length', 'shape_area'].some(ex => key.toLowerCase().includes(ex.toLowerCase()))) return null;
+                                if (key.startsWith('_')) return null; // Filter out internal properties
+                                if (key === subtitleField || key === titleField) return null;
+                                if (value === null || value === "" || value === undefined || value === "null") return null;
+                                
+                                if (visibleCols && !visibleCols.some(col => col.toLowerCase() === key.toLowerCase())) return null;
+
+                                return (
+                                    <div key={key} className="flex flex-row gap-2 border-l-2 border-slate-700/30 pl-3">
+                                        <span className="text-slate-600 font-medium text-[8px] tracking-widest min-w-[70px]">{key.replace(/_/g, ' ')}:</span>
+                                        <span className="text-slate-400 break-words leading-tight flex-1">{String(value)}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
-                    <span className="text-[9px] text-slate-600 font-medium tracking-tighter font-mono-tech">ID: {item.FID || item.id || 'N/A'}</span>
-                    <div className="mt-3 grid grid-cols-1 gap-1.5 border-t border-slate-800/30 pt-3 opacity-80 group-hover/item:opacity-100 transition-opacity">
-                        {Object.entries(item).map(([key, value]) => {
-                            if (['geometry', 'area_interseccion_ha', 'nombre', 'Name', 'NOMBRE', 'FID', 'id'].some(ex => key.toLowerCase().includes(ex.toLowerCase()))) return null;
-                            if (key === subtitleField || key === titleField) return null;
-                            if (value === null || value === "" || value === undefined || value === "null") return null;
-                            return (
-                                <div key={key} className="flex flex-row gap-2 border-l-2 border-slate-700/30 pl-3">
-                                    <span className="text-slate-600 font-medium text-[8px] tracking-widest min-w-[70px]">{key.replace(/_/g, ' ')}:</span>
-                                    <span className="text-slate-400 break-words leading-tight flex-1">{String(value)}</span>
-                                </div>
-                            );
-                        })}
+                    <div className="flex flex-col items-end justify-center font-mono-tech">
+                        <span className="text-red-400 font-black text-xs tracking-tighter shadow-sm">{formatNumber(item.area_interseccion_ha)} ha</span>
+                        <span className="text-[9px] text-slate-600 font-bold italic">{formatNumber(totalArea > 0 ? (item.area_interseccion_ha / totalArea) * 100 : 0, 1)}%</span>
                     </div>
-                </div>
-                <div className="flex flex-col items-end justify-center font-mono-tech">
-                    <span className="text-red-400 font-black text-xs tracking-tighter shadow-sm">{formatNumber(item.area_interseccion_ha)} ha</span>
-                    <span className="text-[9px] text-slate-600 font-bold italic">{formatNumber(totalArea > 0 ? (item.area_interseccion_ha / totalArea) * 100 : 0, 1)}%</span>
                 </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     const renderComparison = () => {
         if (compareIndices.length < 2) return <div className="text-center p-10 text-slate-500">Selecciona 2 sitios para comparar</div>;
@@ -647,14 +655,14 @@ const Sidebar = ({
                                                                                             </div>
                                                                                             {isGroupExpanded && (
                                                                                                 <div className="pl-2 space-y-3 border-l border-slate-800 ml-1 mt-2 animate-in slide-in-from-top-2 duration-300">
-                                                                                                    {groupData.items.map((item, i) => renderItemCard(item, i, subtitleField, titleField, totalArea))}
+                                                                                                    {groupData.items.map((item, i) => renderItemCard(item, i, subtitleField, titleField, totalArea, lId))}
                                                                                                 </div>
                                                                                             )}
                                                                                         </div>
                                                                                     );
                                                                                 });
                                                                             }
-                                                                            return items.map((item, i) => renderItemCard(item, i, subtitleField, titleField, totalArea));
+                                                                            return items.map((item, i) => renderItemCard(item, i, subtitleField, titleField, totalArea, lId));
                                                                         })()}
                                                                     </div>
                                                                 )}
