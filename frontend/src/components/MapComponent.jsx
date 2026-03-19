@@ -7,7 +7,8 @@ import { deserialize } from 'flatgeobuf/lib/mjs/geojson';
 
 const MapComponent = forwardRef(({ 
     onAnalyzePolygon, isAnalyzing, activeLayers, mapStyle, results, onMapReady, 
-    availableLayers = [], onProximityPoint, activeDrawMode, layerOrder, metadata = {} 
+    availableLayers = [], onProximityPoint, activeDrawMode, layerOrder, metadata = {},
+    administrativeConfig = {} 
 }, ref) => {
     const mapContainer = useRef(null);
     const map = useRef(null);
@@ -97,6 +98,38 @@ const MapComponent = forwardRef(({
         }
     }, [onAnalyzePolygon, onProximityPoint]);
 
+    // 0. AUTO-FOCUS ON STARTUP
+    useEffect(() => {
+        if (!map.current || !mapLoaded || !administrativeConfig?.focus) return;
+        
+        const { id_capa, target_key, target_values } = administrativeConfig.focus;
+        console.log(`[MapComponent] Auto-focusing on ${id_capa} where ${target_key} is ${target_values}`);
+        
+        const handleFocus = async () => {
+            try {
+                const response = await fetch(`/api/raw-tiles/${id_capa}.lowres.fgb`);
+                const iter = deserialize(response.body);
+                for await (const feature of iter) {
+                    if (String(feature.properties[target_key]) === String(target_values)) {
+                        const bounds = new maplibregl.LngLatBounds();
+                        if (feature.geometry.type === 'Polygon') {
+                            feature.geometry.coordinates[0].forEach(c => bounds.extend(c));
+                        } else if (feature.geometry.type === 'MultiPolygon') {
+                            feature.geometry.coordinates.forEach(p => p[0].forEach(c => bounds.extend(c)));
+                        }
+                        
+                        if (!bounds.isEmpty()) {
+                            console.log("[MapComponent] Found focus geometry, fitting bounds");
+                            map.current.fitBounds(bounds, { padding: 80, duration: 1500 });
+                        }
+                        break;
+                    }
+                }
+            } catch (err) { console.error("Error focusing map:", err); }
+        };
+        handleFocus();
+    }, [mapLoaded, administrativeConfig?.focus]);
+
     // 1. INITIALIZE MAP
     useEffect(() => {
         if (map.current) return;
@@ -108,13 +141,25 @@ const MapComponent = forwardRef(({
                 sources: {
                     'carto-dark': { type: 'raster', tiles: ["https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png"], tileSize: 256 },
                     'carto-light': { type: 'raster', tiles: ["https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png"], tileSize: 256 },
+                    'carto-voyager': { type: 'raster', tiles: ["https://basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}@2x.png"], tileSize: 256 },
                     'esri-satellite': { type: 'raster', tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256 },
+                    'esri-street': { type: 'raster', tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"], tileSize: 256 },
+                    'esri-topo': { type: 'raster', tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"], tileSize: 256 },
+                    'esri-gray': { type: 'raster', tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"], tileSize: 256 },
+                    'esri-terrain': { type: 'raster', tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}"], tileSize: 256 },
+                    'osm-standard': { type: 'raster', tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256 },
                     'terrenos-source': { type: 'geojson', data: { type: 'FeatureCollection', features: [] } }
                 },
                 layers: [
                     { id: 'base-map', type: 'raster', source: 'carto-dark', layout: { visibility: mapStyle === 'dark' ? 'visible' : 'none' } },
                     { id: 'base-map-light', type: 'raster', source: 'carto-light', layout: { visibility: mapStyle === 'light' ? 'visible' : 'none' } },
+                    { id: 'base-map-voyager', type: 'raster', source: 'carto-voyager', layout: { visibility: mapStyle === 'voyager' ? 'visible' : 'none' } },
                     { id: 'base-map-satellite', type: 'raster', source: 'esri-satellite', layout: { visibility: mapStyle === 'satellite' ? 'visible' : 'none' } },
+                    { id: 'base-map-street', type: 'raster', source: 'esri-street', layout: { visibility: mapStyle === 'street' ? 'visible' : 'none' } },
+                    { id: 'base-map-topo', type: 'raster', source: 'esri-topo', layout: { visibility: mapStyle === 'topo' ? 'visible' : 'none' } },
+                    { id: 'base-map-gray', type: 'raster', source: 'esri-gray', layout: { visibility: mapStyle === 'gray' ? 'visible' : 'none' } },
+                    { id: 'base-map-terrain', type: 'raster', source: 'esri-terrain', layout: { visibility: mapStyle === 'terrain' ? 'visible' : 'none' } },
+                    { id: 'base-map-osm', type: 'raster', source: 'osm-standard', layout: { visibility: mapStyle === 'osm' ? 'visible' : 'none' } },
                     { id: 'terrenos-fill', type: 'fill', source: 'terrenos-source', paint: { 'fill-color': '#10b981', 'fill-opacity': 0.4 } },
                     { id: 'terrenos-line', type: 'line', source: 'terrenos-source', paint: { 'line-color': '#059669', 'line-width': 2 } }
                 ]
@@ -337,7 +382,13 @@ const MapComponent = forwardRef(({
         if (!map.current || !mapLoaded) return;
         if (map.current.getLayer('base-map')) map.current.setLayoutProperty('base-map', 'visibility', mapStyle === 'dark' ? 'visible' : 'none');
         if (map.current.getLayer('base-map-light')) map.current.setLayoutProperty('base-map-light', 'visibility', mapStyle === 'light' ? 'visible' : 'none');
+        if (map.current.getLayer('base-map-voyager')) map.current.setLayoutProperty('base-map-voyager', 'visibility', mapStyle === 'voyager' ? 'visible' : 'none');
         if (map.current.getLayer('base-map-satellite')) map.current.setLayoutProperty('base-map-satellite', 'visibility', mapStyle === 'satellite' ? 'visible' : 'none');
+        if (map.current.getLayer('base-map-street')) map.current.setLayoutProperty('base-map-street', 'visibility', mapStyle === 'street' ? 'visible' : 'none');
+        if (map.current.getLayer('base-map-topo')) map.current.setLayoutProperty('base-map-topo', 'visibility', mapStyle === 'topo' ? 'visible' : 'none');
+        if (map.current.getLayer('base-map-gray')) map.current.setLayoutProperty('base-map-gray', 'visibility', mapStyle === 'gray' ? 'visible' : 'none');
+        if (map.current.getLayer('base-map-terrain')) map.current.setLayoutProperty('base-map-terrain', 'visibility', mapStyle === 'terrain' ? 'visible' : 'none');
+        if (map.current.getLayer('base-map-osm')) map.current.setLayoutProperty('base-map-osm', 'visibility', mapStyle === 'osm' ? 'visible' : 'none');
     }, [mapStyle, mapLoaded]);
 
     return (

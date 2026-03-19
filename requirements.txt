@@ -1,8 +1,9 @@
-fastapi
-uvicorn
-geopandas
-shapely
-pandas
-python-multipart
-pyogrio
-rtree
+fastapi>=0.100.0
+uvicorn>=0.23.0
+geopandas>=0.14.0
+shapely>=2.0.0
+pandas>=2.1.0
+python-multipart>=0.0.6
+pyogrio>=0.7.0
+rtree>=1.1.0
+fiona>=1.9.0

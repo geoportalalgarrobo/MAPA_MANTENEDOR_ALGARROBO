@@ -13,6 +13,7 @@ function App() {
   const [error, setError] = useState(null);
   const [proximityResults, setProximityResults] = useState(null);
   const [showProximityPanel, setShowProximityPanel] = useState(false);
+  const [isPresenting, setIsPresenting] = useState(false);
 
   // Map Drawing State Reference
   const mapRef = useRef(null); // Will hold functions exposed by MapComponent
@@ -178,6 +179,7 @@ function App() {
 
       // Show the results panel automatically
       setShowResultsPanel(true);
+      setIsPresenting(false); // Added this line
 
     } catch (err) {
       console.error(err);
@@ -194,7 +196,46 @@ function App() {
     setIsAnalyzing(true);
     setError(null);
 
-    const formData = new FormData();
+    const suffix = file.name.split('.').pop().toLowerCase();
+
+    // 1. FRONTEND PARSING FOR KML/KMZ
+    if (suffix === 'kml' || suffix === 'kmz') {
+      try {
+        let kmlText;
+        if (suffix === 'kmz') {
+          if (!window.JSZip) throw new Error("Biblioteca JSZip no cargada");
+          const zip = await window.JSZip.loadAsync(file);
+          const kmlFile = Object.values(zip.files).find(f => f.name.toLowerCase().endsWith('.kml'));
+          if (!kmlFile) throw new Error("No se encontró un archivo .kml válido dentro del KMZ");
+          kmlText = await kmlFile.async("string");
+        } else {
+          kmlText = await file.text();
+        }
+
+        if (!window.toGeoJSON) throw new Error("Biblioteca toGeoJSON no cargada");
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(kmlText, "text/xml");
+        const geojson = window.toGeoJSON.kml(xml);
+        
+        console.log("[App] KML/KMZ parsed to GeoJSON:", geojson);
+
+        if (mapRef.current && geojson.features.length > 0) {
+          mapRef.current.clearDrawings();
+          mapRef.current.addFeatures(geojson);
+        }
+        
+        await handleAnalyzePolygon(geojson);
+        return;
+      } catch (err) {
+        console.error("[App] KML/KMZ processing failed:", err);
+        setError("Error procesando archivo KML/KMZ: " + err.message);
+        setIsAnalyzing(false);
+        return;
+      }
+    }
+
+    // 2. BACKEND PARSING FOR OTHER FORMATS (SHP, GEOJSON)
+    const formData = new FormData(); // Define formData here
     formData.append('file', file);
 
     try {
@@ -217,7 +258,6 @@ function App() {
         mapRef.current.addFeatures(featureCollection);
       }
 
-      // Trigger analysis on all the uploaded features
       await handleAnalyzePolygon(featureCollection);
 
     } catch (err) {
@@ -225,7 +265,6 @@ function App() {
       setError(err.message || 'Error al procesar el archivo. Verifica el formato.');
       setIsAnalyzing(false);
     } finally {
-      // Clear file input so the same file can be uploaded again if needed
       event.target.value = null;
     }
   };
@@ -259,10 +298,12 @@ function App() {
     }
   };
 
+  const togglePresentation = () => setIsPresenting(!isPresenting);
+
   return (
-    <div className="flex h-screen w-screen bg-slate-950 overflow-hidden font-sans text-slate-100">
-      {/* Left Sidebar */}
-      <aside className="w-[400px] flex-shrink-0 z-20 shadow-xl relative bg-slate-900 border-r border-slate-800">
+    <div className="flex h-screen w-screen bg-slate-950 overflow-hidden font-sans text-slate-100 relative">
+      {/* Left Sidebar - Conditional visibility */}
+      <aside className={`transition-all duration-500 ease-in-out flex-shrink-0 z-20 shadow-xl relative bg-slate-900 border-r border-slate-800 ${isPresenting ? 'w-0 opacity-0 -translate-x-full overflow-hidden' : 'w-[400px]'}`}>
         <Sidebar
           isAnalyzing={isAnalyzing}
           results={results}
@@ -287,6 +328,8 @@ function App() {
           layerGroups={layerGroups}
           metadata={metadata}
           administrativeConfig={administrativeConfig}
+          onTogglePresentation={togglePresentation}
+          isPresenting={isPresenting}
         />
       </aside>
 
@@ -304,7 +347,19 @@ function App() {
           onProximityPoint={handleProximityPoint}
           activeDrawMode={activeDrawMode}
           metadata={metadata}
+          administrativeConfig={administrativeConfig}
         />
+        
+        {/* Presentation Control Floating Button */}
+        {isPresenting && (
+           <button 
+             onClick={togglePresentation}
+             className="absolute bottom-10 left-10 z-[30] bg-slate-900/80 backdrop-blur-md border border-slate-700 text-white px-6 py-3 rounded-full font-bold shadow-2xl hover:bg-slate-800 transition-all flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4"
+           >
+             <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+             Salir Modo Presentación
+           </button>
+        )}
       </main>
     </div>
   );

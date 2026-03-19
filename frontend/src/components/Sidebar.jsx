@@ -16,7 +16,8 @@ const Sidebar = ({
     onStartDrawing, activeDrawMode, onFileUpload, activeLayers, onToggleLayer,
     mapStyle, setMapStyle, onClearHistory, layerOrder, onReorderLayers,
     availableLayers = [], proximityResults, showProximityPanel, setShowProximityPanel,
-    layerGroups = [], metadata = {}, administrativeConfig = {}
+    layerGroups = [], metadata = {}, administrativeConfig = {},
+    onTogglePresentation, isPresenting, onProximityPoint
 }) => {
     const [expandedFeatures, setExpandedFeatures] = React.useState(new Set([0]));
     const [expandedFormations, setExpandedFormations] = React.useState({});
@@ -219,7 +220,7 @@ const Sidebar = ({
                                 if (key === subtitleField || key === titleField) return null;
                                 if (value === null || value === "" || value === undefined || value === "null") return null;
                                 
-                                if (visibleCols && !visibleCols.some(col => col.toLowerCase() === key.toLowerCase())) return null;
+                                if (visibleCols && visibleCols.length > 0 && !visibleCols.some(col => col.toLowerCase() === key.toLowerCase())) return null;
 
                                 return (
                                     <div key={key} className="flex flex-row gap-2 border-l-2 border-slate-700/30 pl-3">
@@ -347,7 +348,7 @@ const Sidebar = ({
 
                 {activeLayers['terrenos'] && results?.length > 0 && (
                     <div className="mt-4 space-y-3">
-                        <button onClick={() => setShowResultsPanel(true)} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-lg shadow-emerald-900/20">
+                        <button onClick={() => { setShowResultsPanel(true); setIsPresenting(false); }} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg text-xs font-bold transition-all shadow-lg shadow-emerald-900/20">
                             Ver Resultados ({results.length})
                         </button>
                         <div className="flex gap-2">
@@ -383,10 +384,27 @@ const Sidebar = ({
             {/* Map Styles */}
             <div className="mt-2 bg-slate-950/50 p-4 rounded-xl border border-slate-900">
                 <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-3 text-center">Mapa Base</h4>
-                <div className="flex p-1 bg-slate-900 rounded-lg gap-1">
-                    {['dark', 'light', 'satellite'].map(style => (
-                        <button key={style} onClick={() => setMapStyle(style)} className={`flex-1 py-1.5 rounded-md text-[9px] font-bold uppercase transition-all ${mapStyle === style ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-800'}`}>
-                            {style === 'dark' ? 'Oscuro' : style === 'light' ? 'Claro' : 'Satélite'}
+                <div className="grid grid-cols-3 gap-2">
+                    {[
+                        { id: 'dark', label: 'Oscuro' },
+                        { id: 'light', label: 'Claro' },
+                        { id: 'voyager', label: 'Voyager' },
+                        { id: 'satellite', label: 'Satélite' },
+                        { id: 'street', label: 'Calles' },
+                        { id: 'topo', label: 'Topógrafo' },
+                        { id: 'terrain', label: 'Relieve' },
+                        { id: 'gray', label: 'Gris' },
+                        { id: 'osm', label: 'OSM' }
+                    ].map(style => (
+                        <button
+                            key={style.id}
+                            onClick={() => setMapStyle(style.id)}
+                            className={`py-1.5 rounded-lg text-[10px] font-bold transition-all border ${mapStyle === style.id
+                                ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-900/40'
+                                : 'bg-slate-900 border-slate-800 text-slate-500 hover:bg-slate-800'
+                                }`}
+                        >
+                            {style.label}
                         </button>
                     ))}
                 </div>
@@ -428,6 +446,14 @@ const Sidebar = ({
                     Geoportal
                 </h1>
                 <div className="h-1.5 w-12 bg-blue-600 mt-3 mb-4 rounded-full shadow-[0_0_15px_rgba(37,99,235,0.4)]"></div>
+                
+                <button 
+                    onClick={onTogglePresentation}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/40 border border-slate-700/50 hover:bg-slate-800 transition-all text-[10px] font-bold text-slate-400 group/pres mb-4"
+                >
+                    <div className="w-1.5 h-1.5 rounded-full bg-slate-600 group-hover/pres:bg-blue-500 transition-colors"></div>
+                    PRESENTACIÓN
+                </button>
                 <p className="text-slate-400 text-[10px] leading-relaxed text-center font-medium opacity-90 max-w-[280px]">
                     💡 Sube el polígono de tu terreno en un archivo espacial (.geojson, .kml, shapefiles en .zip) o dibújalo. Haz doble clic para terminar el dibujo.
                 </p>
