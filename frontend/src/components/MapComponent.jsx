@@ -117,9 +117,16 @@ const MapComponent = forwardRef(({
                     const props = feature.properties;
                     // Robust key matching (case-insensitive)
                     const actualKey = Object.keys(props).find(k => k.toLowerCase() === target_key.toLowerCase());
+                    const propVal = actualKey ? props[actualKey] : null;
+                    const targetVal = target_values;
                     
-                    if (actualKey && String(props[actualKey]) === String(target_values)) {
-                        console.log(`[MapComponent] Found focus geometry for ${target_values} in ${actualKey}`);
+                    // Comparación robusta (maneja números, strings y ceros a la izquierda)
+                    const isMatch = String(propVal).padStart(5, '0') === String(targetVal).padStart(5, '0') ||
+                                  String(propVal) === String(targetVal) ||
+                                  (!isNaN(propVal) && !isNaN(targetVal) && Number(propVal) === Number(targetVal));
+
+                    if (actualKey && isMatch) {
+                        console.log(`[MapComponent] Found focus geometry for ${targetVal} in ${actualKey}`);
                         const bounds = new maplibregl.LngLatBounds();
                         if (feature.geometry.type === 'Polygon') {
                             feature.geometry.coordinates[0].forEach(c => bounds.extend(c));
@@ -129,7 +136,7 @@ const MapComponent = forwardRef(({
                         
                         if (!bounds.isEmpty()) {
                             console.log("[MapComponent] Fitting bounds to focus geometry");
-                            map.current.fitBounds(bounds, { padding: 80, duration: 2000 });
+                            map.current.fitBounds(bounds, { padding: 80, duration: 2500 });
                         }
                         break;
                     }
@@ -173,8 +180,8 @@ const MapComponent = forwardRef(({
                     { id: 'terrenos-line', type: 'line', source: 'terrenos-source', paint: { 'line-color': '#059669', 'line-width': 2 } }
                 ]
             },
-            center: [-73.0, -42.0],
-            zoom: 7
+            center: [-71.67, -33.37], // Coordenadas aproximadas de Algarrobo
+            zoom: 12
         });
 
         map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
