@@ -100,10 +100,10 @@ const MapComponent = forwardRef(({
 
     // 0. AUTO-FOCUS ON STARTUP
     useEffect(() => {
-        console.log("[MapComponent] Focus effect triggered", { 
-            mapReady: !!map.current, 
-            mapLoaded, 
-            config: administrativeConfig?.focus 
+        console.log("[MapComponent] Focus effect triggered", {
+            mapReady: !!map.current,
+            mapLoaded,
+            config: administrativeConfig?.focus
         });
 
         if (!map.current || !mapLoaded || !administrativeConfig?.focus) {
@@ -116,32 +116,32 @@ const MapComponent = forwardRef(({
 
         const handleFocus = async () => {
             try {
+                console.log(`[MapComponent] Iniciando búsqueda de enfoque para: ${id_capa}`);
                 let response = await fetch(`/api/raw-tiles/${id_capa}.lowres.fgb`);
                 if (!response.ok) response = await fetch(`/api/raw-tiles/${id_capa}.fgb`);
+                
                 if (!response.ok) {
-                    console.error("[MapComponent] Focus layer fetch failed");
+                    console.warn(`[MapComponent] No se pudo cargar la capa de enfoque ${id_capa}. Verifica que el backend esté corriendo.`);
+                    console.info("%cTip Windows: Si 'python' no funciona, desactiva los alias de ejecución en Configuración > Aplicaciones.", "color: #f97316; font-weight: bold;");
                     return;
                 }
 
-                console.log("[MapComponent] Focus layer fetched. Starting iteration...");
+                console.log("[MapComponent] Capa de enfoque recibida. Iterando geometrías...");
                 const iter = deserialize(response.body);
                 let count = 0;
+                let found = false;
+
                 for await (const feature of iter) {
                     count++;
                     const props = feature.properties;
-                    
-                    if (count <= 3) console.log(`[MapComponent] Feature[${count}] attributes sample:`, props);
-
                     const actualKey = Object.keys(props).find(k => k.toLowerCase() === target_key.toLowerCase());
                     const propVal = actualKey ? props[actualKey] : null;
-                    
                     const normProp = String(propVal || "").padStart(5, '0');
                     const normTarget = String(target_values || "").padStart(5, '0');
 
-                    const isMatch = actualKey && (normProp === normTarget);
-
-                    if (isMatch) {
-                        console.log(`[MapComponent] MATCH FOUND! ${target_values} at index ${count}. Region: ${props.region}, Comuna: ${props.comuna}`);
+                    if (actualKey && normProp === normTarget) {
+                        console.log(`[MapComponent] ✅ MATCH ENCONTRADO! Valor: ${target_values} en índice ${count}.`);
+                        found = true;
                         const bounds = new maplibregl.LngLatBounds();
                         if (feature.geometry.type === 'Polygon') {
                             feature.geometry.coordinates[0].forEach(c => bounds.extend(c));
@@ -149,15 +149,20 @@ const MapComponent = forwardRef(({
                             feature.geometry.coordinates.forEach(p => p[0].forEach(c => bounds.extend(c)));
                         }
 
-                        if (!bounds.isEmpty()) {
-                            console.log("[MapComponent] Moving camera to focus area...");
-                            map.current.fitBounds(bounds, { padding: 80, duration: 4000 });
+                        if (!bounds.isEmpty() && map.current) {
+                            console.log("[MapComponent] Centrando cámara en el área de enfoque...");
+                            map.current.fitBounds(bounds, { padding: 100, duration: 3000, maxZoom: 14 });
                         }
-                        return; // Exit after first match
+                        break; 
                     }
                 }
-                console.log(`[MapComponent] Focus scan completed. Total scanned: ${count}. No match found.`);
-            } catch (err) { console.error("Error focusing map:", err); }
+                
+                if (!found) {
+                    console.log(`[MapComponent] Escaneo finalizado (${count} features). No se encontró el código ${target_values} en ${id_capa}.`);
+                }
+            } catch (err) { 
+                console.error("[MapComponent] Error en handleFocus:", err); 
+            }
         };
         handleFocus();
     }, [mapLoaded, administrativeConfig?.focus]);
@@ -196,8 +201,8 @@ const MapComponent = forwardRef(({
                     { id: 'terrenos-line', type: 'line', source: 'terrenos-source', paint: { 'line-color': '#059669', 'line-width': 2 } }
                 ]
             },
-            center: [-73, -42],//[-71.67, -33.37], // Coordenadas aproximadas de Algarrobo
-            zoom: 5
+            center: [-71.67, -33.37], // Coordenadas de Algarrobo
+            zoom: 12
         });
 
         map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
