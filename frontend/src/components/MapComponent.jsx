@@ -181,7 +181,7 @@ const MapComponent = forwardRef(({
                 ]
             },
             center: [-73, -42],//[-71.67, -33.37], // Coordenadas aproximadas de Algarrobo
-            zoom: 12
+            zoom: 5
         });
 
         map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
