@@ -267,7 +267,8 @@ const MapComponent = forwardRef(({
                     if (k.startsWith('_') || ['id', 'FID', 'objectid', 'shape_length', 'shape_area'].some(ex => k.toLowerCase().includes(ex.toLowerCase()))) return;
                     
                     const visibleCols = metadata[layerId]?.visible_columns;
-                    if (visibleCols && !visibleCols.some(col => col.toLowerCase() === k.toLowerCase())) return;
+                    if (!visibleCols || visibleCols.length === 0) return;
+                    if (!visibleCols.some(col => col.toLowerCase() === k.toLowerCase())) return;
 
                     let displayValue = String(v);
                     if (displayValue.startsWith('http') || displayValue.includes('www.')) {

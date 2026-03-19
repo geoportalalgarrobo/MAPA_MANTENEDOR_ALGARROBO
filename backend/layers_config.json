@@ -23,6 +23,15 @@
       "target_values": 5602
     }
   },
+  "proximidad_cercana": {
+    "areas_protegidas": "nombreorig",
+    "sitios_prioritarios": "Nombre_SP",
+    "ecosistemas": "piso",
+    "ecmpo": "REP_SUBPES",
+    "concesiones_acuicultura": "titular",
+    "concesiones_mineras_const": "titular",
+    "concesiones_mineras_tramite": "titular"
+  },
   "administrative_layers": [
     "regiones_simplified",
     "provincias_simplified",
@@ -118,14 +127,14 @@
     "concesiones_mineras_const": {
       "name": "Catastro Minero Constituidas",
       "color": "#E17100",
-      "results_group_by": "concesiona",
+      "results_group_by": "titular",
       "results_subtitle": "sustancia"
     },
     "concesiones_mineras_tramite": {
       "name": "Catastro Minero en Trámite",
       "color": "#7F22FE",
-      "results_group_by": "concesiona",
-      "results_subtitle": "etapa"
+      "results_group_by": "titular",
+      "results_subtitle": "situacion"
     },
     "comunas_simplified": {
       "name": "Límites Comunales",

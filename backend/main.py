@@ -104,7 +104,8 @@ async def list_layers():
         "layers": [{"id": lid} for lid in available_ids],
         "metadata": config.get("layer_metadata", {}),
         "display_order": config.get("display_order", []),
-        "administrative_config": config.get("administrative_config", {})
+        "administrative_config": config.get("administrative_config", {}),
+        "proximidad_cercana": config.get("proximidad_cercana", {})
     }
 
 @app.get("/api/layers/{layer}.json")
@@ -229,12 +230,16 @@ async def get_proximity(lat: float, lon: float):
                     nearest_idx = distances.idxmin()
                     feature = gdf.iloc[nearest_idx]
                     
-                    # Get a name for the nearest feature
+                    # Get a name for the nearest feature based on config or defaults
                     name = "Sin nombre"
-                    for field in ['nombre', 'name', 'Name', 'NOMBRE', 'nombreorig']:
-                        if field in feature:
-                            name = str(feature[field])
-                            break
+                    target_field = config.get("proximidad_cercana", {}).get(layer)
+                    if target_field and target_field in feature:
+                        name = str(feature[target_field])
+                    else:
+                        for field in ['nombre', 'name', 'Name', 'NOMBRE', 'nombreorig']:
+                            if field in feature:
+                                name = str(feature[field])
+                                break
 
                     results.append({
                         "layer": layer,
