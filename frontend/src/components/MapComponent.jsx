@@ -100,33 +100,48 @@ const MapComponent = forwardRef(({
 
     // 0. AUTO-FOCUS ON STARTUP
     useEffect(() => {
-        if (!map.current || !mapLoaded || !administrativeConfig?.focus) return;
+        console.log("[MapComponent] Focus effect triggered", { 
+            mapReady: !!map.current, 
+            mapLoaded, 
+            config: administrativeConfig?.focus 
+        });
+
+        if (!map.current || !mapLoaded || !administrativeConfig?.focus) {
+            console.log("[MapComponent] Focus skip: missing dependencies");
+            return;
+        }
 
         const { id_capa, target_key, target_values } = administrativeConfig.focus;
-        console.log(`[MapComponent] Auto-focusing on ${id_capa} where ${target_key} is ${target_values}`);
+        console.log(`[MapComponent] Start focus search for ${id_capa}: ${target_values}`);
 
         const handleFocus = async () => {
             try {
-                // Try .lowres first, then standard if lowres fails
                 let response = await fetch(`/api/raw-tiles/${id_capa}.lowres.fgb`);
                 if (!response.ok) response = await fetch(`/api/raw-tiles/${id_capa}.fgb`);
-                if (!response.ok) return;
+                if (!response.ok) {
+                    console.error("[MapComponent] Focus layer fetch failed");
+                    return;
+                }
 
+                console.log("[MapComponent] Focus layer fetched. Starting iteration...");
                 const iter = deserialize(response.body);
+                let count = 0;
                 for await (const feature of iter) {
+                    count++;
                     const props = feature.properties;
-                    // Robust key matching (case-insensitive)
+                    
+                    if (count <= 3) console.log(`[MapComponent] Feature[${count}] attributes sample:`, props);
+
                     const actualKey = Object.keys(props).find(k => k.toLowerCase() === target_key.toLowerCase());
                     const propVal = actualKey ? props[actualKey] : null;
-                    const targetVal = target_values;
+                    
+                    const normProp = String(propVal || "").padStart(5, '0');
+                    const normTarget = String(target_values || "").padStart(5, '0');
 
-                    // Comparación robusta (maneja números, strings y ceros a la izquierda)
-                    const isMatch = String(propVal).padStart(5, '0') === String(targetVal).padStart(5, '0') ||
-                        String(propVal) === String(targetVal) ||
-                        (!isNaN(propVal) && !isNaN(targetVal) && Number(propVal) === Number(targetVal));
+                    const isMatch = actualKey && (normProp === normTarget);
 
-                    if (actualKey && isMatch) {
-                        console.log(`[MapComponent] Found focus geometry for ${targetVal} in ${actualKey}`);
+                    if (isMatch) {
+                        console.log(`[MapComponent] MATCH FOUND! ${target_values} at index ${count}. Region: ${props.region}, Comuna: ${props.comuna}`);
                         const bounds = new maplibregl.LngLatBounds();
                         if (feature.geometry.type === 'Polygon') {
                             feature.geometry.coordinates[0].forEach(c => bounds.extend(c));
@@ -135,12 +150,13 @@ const MapComponent = forwardRef(({
                         }
 
                         if (!bounds.isEmpty()) {
-                            console.log("[MapComponent] Fitting bounds to focus geometry");
-                            map.current.fitBounds(bounds, { padding: 80, duration: 2500 });
+                            console.log("[MapComponent] Moving camera to focus area...");
+                            map.current.fitBounds(bounds, { padding: 80, duration: 4000 });
                         }
-                        break;
+                        return; // Exit after first match
                     }
                 }
+                console.log(`[MapComponent] Focus scan completed. Total scanned: ${count}. No match found.`);
             } catch (err) { console.error("Error focusing map:", err); }
         };
         handleFocus();
