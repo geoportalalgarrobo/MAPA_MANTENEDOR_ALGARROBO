@@ -183,7 +183,7 @@ const MapComponent = forwardRef(({
                     'esri-street': { type: 'raster', tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"], tileSize: 256 },
                     'esri-topo': { type: 'raster', tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"], tileSize: 256 },
                     'esri-gray': { type: 'raster', tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}"], tileSize: 256 },
-                    'esri-terrain': { type: 'raster', tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}"], tileSize: 256 },
+                    'esri-terrain': { type: 'raster', tiles: ["https://a.tile.opentopomap.org/{z}/{x}/{y}.png", "https://b.tile.opentopomap.org/{z}/{x}/{y}.png", "https://c.tile.opentopomap.org/{z}/{x}/{y}.png"], tileSize: 256, attribution: 'Map data: &copy; OpenTopoMap' },
                     'osm-standard': { type: 'raster', tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256 },
                     'terrenos-source': { type: 'geojson', data: { type: 'FeatureCollection', features: [] } }
                 },
