@@ -5,10 +5,10 @@ import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { deserialize } from 'flatgeobuf/lib/mjs/geojson';
 
-const MapComponent = forwardRef(({ 
-    onAnalyzePolygon, isAnalyzing, activeLayers, mapStyle, results, onMapReady, 
+const MapComponent = forwardRef(({
+    onAnalyzePolygon, isAnalyzing, activeLayers, mapStyle, results, onMapReady,
     availableLayers = [], onProximityPoint, activeDrawMode, layerOrder, metadata = {},
-    administrativeConfig = {} 
+    administrativeConfig = {}
 }, ref) => {
     const mapContainer = useRef(null);
     const map = useRef(null);
@@ -29,19 +29,19 @@ const MapComponent = forwardRef(({
     useEffect(() => { activeLayersRef.current = activeLayers; }, [activeLayers]);
 
     useImperativeHandle(ref, () => ({
-        clearDrawings() { 
-            if (draw.current) draw.current.deleteAll(); 
+        clearDrawings() {
+            if (draw.current) draw.current.deleteAll();
             if (proximityMarker.current) { proximityMarker.current.remove(); proximityMarker.current = null; }
         },
         startDrawing(mode = 'draw_polygon') {
             console.log(`[MapComponent] startDrawing called with mode: ${mode}`);
             if (draw.current) {
-                if (proximityMarker.current) { 
+                if (proximityMarker.current) {
                     console.log("[MapComponent] Removing existing proximity marker");
-                    proximityMarker.current.remove(); 
-                    proximityMarker.current = null; 
+                    proximityMarker.current.remove();
+                    proximityMarker.current = null;
                 }
-                
+
                 if (mode === 'proximity_point') {
                     console.log("[MapComponent] Using draw_point mode for proximity");
                     draw.current.changeMode('draw_point');
@@ -74,17 +74,17 @@ const MapComponent = forwardRef(({
         const data = draw.current.getAll();
         if (data.features.length > 0) {
             const feature = (e.features && e.features.length > 0) ? e.features[0] : data.features[data.features.length - 1];
-            
+
             console.log("[MapComponent] Feature type:", feature.geometry.type);
-            
+
             if (feature.geometry.type === 'Point' && activeDrawModeRef.current === 'proximity_point') {
                 const [lng, lat] = feature.geometry.coordinates;
                 console.log("[MapComponent] Point detected for proximity. Coords:", lat, lng);
                 onProximityPoint(lat, lng);
-                
+
                 // Cleanup: remove the point feature since we manage it with a custom marker or just results
                 draw.current.delete(feature.id);
-                
+
                 // Add a custom marker to highlight the point
                 if (proximityMarker.current) proximityMarker.current.remove();
                 proximityMarker.current = new maplibregl.Marker({ color: '#f97316' })
@@ -101,10 +101,10 @@ const MapComponent = forwardRef(({
     // 0. AUTO-FOCUS ON STARTUP
     useEffect(() => {
         if (!map.current || !mapLoaded || !administrativeConfig?.focus) return;
-        
+
         const { id_capa, target_key, target_values } = administrativeConfig.focus;
         console.log(`[MapComponent] Auto-focusing on ${id_capa} where ${target_key} is ${target_values}`);
-        
+
         const handleFocus = async () => {
             try {
                 // Try .lowres first, then standard if lowres fails
@@ -119,11 +119,11 @@ const MapComponent = forwardRef(({
                     const actualKey = Object.keys(props).find(k => k.toLowerCase() === target_key.toLowerCase());
                     const propVal = actualKey ? props[actualKey] : null;
                     const targetVal = target_values;
-                    
+
                     // Comparación robusta (maneja números, strings y ceros a la izquierda)
                     const isMatch = String(propVal).padStart(5, '0') === String(targetVal).padStart(5, '0') ||
-                                  String(propVal) === String(targetVal) ||
-                                  (!isNaN(propVal) && !isNaN(targetVal) && Number(propVal) === Number(targetVal));
+                        String(propVal) === String(targetVal) ||
+                        (!isNaN(propVal) && !isNaN(targetVal) && Number(propVal) === Number(targetVal));
 
                     if (actualKey && isMatch) {
                         console.log(`[MapComponent] Found focus geometry for ${targetVal} in ${actualKey}`);
@@ -133,7 +133,7 @@ const MapComponent = forwardRef(({
                         } else if (feature.geometry.type === 'MultiPolygon') {
                             feature.geometry.coordinates.forEach(p => p[0].forEach(c => bounds.extend(c)));
                         }
-                        
+
                         if (!bounds.isEmpty()) {
                             console.log("[MapComponent] Fitting bounds to focus geometry");
                             map.current.fitBounds(bounds, { padding: 80, duration: 2500 });
@@ -180,7 +180,7 @@ const MapComponent = forwardRef(({
                     { id: 'terrenos-line', type: 'line', source: 'terrenos-source', paint: { 'line-color': '#059669', 'line-width': 2 } }
                 ]
             },
-            center: [-71.67, -33.37], // Coordenadas aproximadas de Algarrobo
+            center: [-73, -42],//[-71.67, -33.37], // Coordenadas aproximadas de Algarrobo
             zoom: 12
         });
 
@@ -241,21 +241,21 @@ const MapComponent = forwardRef(({
 
         map.current.on('click', async (e) => {
             console.log(`[MapComponent] Map clicked at: ${e.lngLat.lat}, ${e.lngLat.lng}. Active mode: ${activeDrawModeRef.current}`);
-            
+
             if (activeDrawModeRef.current === 'proximity_point') {
                 const { lat, lng } = e.lngLat;
                 console.log("[MapComponent] Triggering onProximityPoint with:", lat, lng);
                 onProximityPoint(lat, lng);
-                
+
                 if (proximityMarker.current) {
                     console.log("[MapComponent] Removing old marker");
                     proximityMarker.current.remove();
                 }
-                
+
                 proximityMarker.current = new maplibregl.Marker({ color: '#f97316' })
                     .setLngLat([lng, lat])
                     .addTo(map.current);
-                
+
                 console.log("[MapComponent] New marker added at:", lng, lat);
                 return;
             }
@@ -270,7 +270,7 @@ const MapComponent = forwardRef(({
                 const feature = features[0];
                 const props = feature.properties;
                 const layerId = feature.layer.id.replace('-fill', '');
-                
+
                 let html = `<div class="font-sans min-w-[200px]">
                     <div class="flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
                         <div class="w-3 h-3 rounded-full" style="background-color: ${getLayerColor(layerId)}"></div>
@@ -278,10 +278,10 @@ const MapComponent = forwardRef(({
                     </div>
                     <div class="max-h-[250px] overflow-y-auto no-scrollbar">
                         <table class="w-full text-xs border-separate border-spacing-y-2">`;
-                
+
                 Object.entries(props).forEach(([k, v]) => {
                     if (k.startsWith('_') || ['id', 'FID', 'objectid', 'shape_length', 'shape_area'].some(ex => k.toLowerCase().includes(ex.toLowerCase()))) return;
-                    
+
                     const visibleCols = metadata[layerId]?.visible_columns;
                     if (!visibleCols || visibleCols.length === 0) return;
                     if (!visibleCols.some(col => col.toLowerCase() === k.toLowerCase())) return;
@@ -384,10 +384,10 @@ const MapComponent = forwardRef(({
                 features: (results || []).map((r, index) => ({
                     ...(r.originalFeature || {}),
                     id: r.id || `terreno-${index}`,
-                    properties: { 
-                        ...(r.originalFeature?.properties || {}), 
-                        Nombre: r.featureName, 
-                        'Área Total (ha)': Math.round((r.area_total_ha || 0) * 100) / 100 
+                    properties: {
+                        ...(r.originalFeature?.properties || {}),
+                        Nombre: r.featureName,
+                        'Área Total (ha)': Math.round((r.area_total_ha || 0) * 100) / 100
                     }
                 }))
             });
