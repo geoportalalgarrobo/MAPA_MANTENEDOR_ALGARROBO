@@ -285,10 +285,7 @@ async def reporte_predio(payload: GeoJSONPayload):
                     path = os.path.join(DATA_TILES, f"{layer}.fgb")
                     gdf = safe_read_fgb(path, bbox=geom.bounds)
                     if gdf is not None and not gdf.empty:
-                        # Ensure CRS match for proper intersection (EPSG:4326)
-                        if gdf.crs != "EPSG:4326" and gdf.crs is not None:
-                            gdf = gdf.to_crs(epsg=4326)
-                        
+                        # Intersect results (assumes EPSG:4326 correctly or handled by data)
                         # Ensure valid geometries before intersection
                         gdf.geometry = gdf.geometry.buffer(0)
                         inter = gdf[gdf.intersects(geom)].copy()

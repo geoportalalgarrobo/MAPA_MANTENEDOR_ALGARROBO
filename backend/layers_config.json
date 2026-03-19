@@ -20,7 +20,7 @@
     "focus": {
       "id_capa": "comunas_simplified",
       "target_key": "cod_comuna",
-      "target_values": 5602
+      "target_values": 5601
     }
   },
   "proximidad_cercana": {

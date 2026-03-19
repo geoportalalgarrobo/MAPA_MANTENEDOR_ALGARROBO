@@ -107,10 +107,19 @@ const MapComponent = forwardRef(({
         
         const handleFocus = async () => {
             try {
-                const response = await fetch(`/api/raw-tiles/${id_capa}.lowres.fgb`);
+                // Try .lowres first, then standard if lowres fails
+                let response = await fetch(`/api/raw-tiles/${id_capa}.lowres.fgb`);
+                if (!response.ok) response = await fetch(`/api/raw-tiles/${id_capa}.fgb`);
+                if (!response.ok) return;
+
                 const iter = deserialize(response.body);
                 for await (const feature of iter) {
-                    if (String(feature.properties[target_key]) === String(target_values)) {
+                    const props = feature.properties;
+                    // Robust key matching (case-insensitive)
+                    const actualKey = Object.keys(props).find(k => k.toLowerCase() === target_key.toLowerCase());
+                    
+                    if (actualKey && String(props[actualKey]) === String(target_values)) {
+                        console.log(`[MapComponent] Found focus geometry for ${target_values} in ${actualKey}`);
                         const bounds = new maplibregl.LngLatBounds();
                         if (feature.geometry.type === 'Polygon') {
                             feature.geometry.coordinates[0].forEach(c => bounds.extend(c));
@@ -119,8 +128,8 @@ const MapComponent = forwardRef(({
                         }
                         
                         if (!bounds.isEmpty()) {
-                            console.log("[MapComponent] Found focus geometry, fitting bounds");
-                            map.current.fitBounds(bounds, { padding: 80, duration: 1500 });
+                            console.log("[MapComponent] Fitting bounds to focus geometry");
+                            map.current.fitBounds(bounds, { padding: 80, duration: 2000 });
                         }
                         break;
                     }
