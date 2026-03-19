@@ -56,18 +56,20 @@ button, input, select, textarea {
 
 /* Custom specific styles for mapping plugins */
 .maplibregl-popup-content {
-  background: white;
-  color: #0f172a;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  padding: 0;
+  background: white !important;
+  color: #0f172a !important;
+  border-radius: 16px !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  padding: 24px !important;
+  min-width: 280px;
 }
 
 .maplibregl-popup-close-button {
-  color: #64748b;
-  font-size: 16px;
-  padding: 5px;
+  color: #94a3b8;
+  font-size: 20px;
+  top: 10px;
+  right: 10px;
+  padding: 4px;
 }
 
 .maplibregl-ctrl-group {

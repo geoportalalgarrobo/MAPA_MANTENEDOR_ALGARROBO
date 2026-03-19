@@ -210,25 +210,25 @@ const MapComponent = forwardRef(({
                 const props = feature.properties;
                 const layerId = feature.layer.id.replace('-fill', '');
                 
-                let html = `<div class="p-3 font-sans min-w-[240px] bg-white border border-slate-200 rounded-xl shadow-2xl">
-                    <div class="flex items-center gap-2 mb-3 border-b border-slate-100 pb-2">
-                        <div class="w-3 h-3 rounded-full shadow-sm" style="background-color: ${getLayerColor(layerId)}"></div>
-                        <span class="font-bold text-sm text-slate-900">${getLayerDisplayName(layerId)}</span>
+                let html = `<div class="font-sans min-w-[200px]">
+                    <div class="flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
+                        <div class="w-3 h-3 rounded-full" style="background-color: ${getLayerColor(layerId)}"></div>
+                        <span class="font-bold text-sm text-slate-800">${getLayerDisplayName(layerId)}</span>
                     </div>
                     <div class="max-h-[250px] overflow-y-auto no-scrollbar">
-                    <table class="w-full text-xs border-separate border-spacing-y-1.5">`;
+                        <table class="w-full text-xs border-separate border-spacing-y-2">`;
                 
                 Object.entries(props).forEach(([k, v]) => {
-                    if (k.startsWith('_') || ['id', 'FID', 'objectid', 'shape_length', 'shape_area'].some(ex => k.toLowerCase().includes(ex))) return;
+                    if (k.startsWith('_') || ['id', 'FID', 'objectid', 'shape_length', 'shape_area'].some(ex => k.toLowerCase().includes(ex.toLowerCase()))) return;
                     
-                    let displayValue = v;
-                    if (typeof v === 'string' && (v.startsWith('http') || v.includes('www.'))) {
-                        displayValue = `<a href="${v}" target="_blank" class="text-blue-600 hover:underline font-bold">Ver Enlace</a>`;
+                    let displayValue = String(v);
+                    if (displayValue.startsWith('http') || displayValue.includes('www.')) {
+                        displayValue = `<a href="${displayValue}" target="_blank" class="text-blue-600 hover:underline font-bold">Ver Enlace</a>`;
                     }
 
                     html += `<tr>
-                        <td class="font-bold pr-3 text-slate-900 align-top whitespace-nowrap">${k}</td>
-                        <td class="text-slate-600 break-words">${displayValue}</td>
+                        <td class="font-semibold pr-4 text-slate-400 align-top whitespace-nowrap">${k.toLowerCase()}</td>
+                        <td class="text-slate-700 break-words font-medium">${displayValue}</td>
                     </tr>`;
                 });
                 html += `</table></div></div>`;

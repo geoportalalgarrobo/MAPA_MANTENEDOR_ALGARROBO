@@ -416,11 +416,11 @@ const Sidebar = ({
                     <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full"></div>
                     <img src={LogoImage} alt="Logo" className="h-20 w-auto relative drop-shadow-2xl" />
                 </div>
-                <h1 className="text-3xl font-black text-white tracking-[0.2em] font-heading uppercase italic">
+                <h1 className="text-4xl font-bold text-white tracking-widest font-heading uppercase">
                     Geoportal
                 </h1>
-                <div className="h-1 w-12 bg-blue-500 mt-2 mb-3 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
-                <p className="text-slate-500 text-[9px] uppercase font-bold tracking-[0.4em] opacity-80 font-heading">
+                <div className="h-1.5 w-12 bg-blue-600 mt-3 mb-4 rounded-full shadow-[0_0_15px_rgba(37,99,235,0.4)]"></div>
+                <p className="text-slate-400 text-[10px] leading-relaxed text-center font-medium opacity-90 max-w-[280px]">
                     💡 Sube el polígono de tu terreno en un archivo espacial (.geojson, .kml, shapefiles en .zip) o dibújalo. Haz doble clic para terminar el dibujo.
                 </p>
             </header>
